@@ -12,12 +12,13 @@ use libadwaita::prelude::*;
 
 use crate::APP_ID;
 use crate::ari::Ari;
-use crate::chat::ChatPage;
+use crate::chat::{Attachments, ChatPage};
 use crate::remembered::RememberedPage;
 use crate::skills::SkillsPage;
+use crate::timers::TimersPage;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Page {
+pub enum Page {
     Conversation,
     Timers,
     Skills,
@@ -64,7 +65,9 @@ pub struct Window {
     window: adw::ApplicationWindow,
     pub chat: Rc<ChatPage>,
     pub remembered: RememberedPage,
+    pub timers: TimersPage,
     skills: Rc<SkillsPage>,
+    pages: gtk4::ListBox,
     page: Cell<Page>,
     facts: Cell<usize>,
     title: adw::WindowTitle,
@@ -73,11 +76,24 @@ pub struct Window {
 
 impl Window {
     pub fn new(app: &adw::Application, ari: &Rc<Ari>) -> Rc<Self> {
-        let chat = ChatPage::new(glib::clone!(
-            #[weak]
-            ari,
-            move |text| ari.submit(text)
-        ));
+        let weak = Rc::downgrade(ari);
+        let attachments = Attachments {
+            card: Box::new(move |id| weak.upgrade()?.card_widget(id)),
+            open_skill: Rc::new(glib::clone!(
+                #[weak]
+                ari,
+                move |id| ari.show_skill(id)
+            )),
+        };
+        let chat = ChatPage::new(
+            glib::clone!(
+                #[weak]
+                ari,
+                move |text| ari.submit(text)
+            ),
+            attachments,
+        );
+        let timers = TimersPage::new(ari);
         let remembered = RememberedPage::new(glib::clone!(
             #[weak]
             ari,
@@ -92,8 +108,7 @@ impl Window {
                 Page::Conversation => chat.root.clone().upcast(),
                 Page::Remembered => remembered.root.clone().upcast(),
                 Page::Skills => skills.root.clone().upcast(),
-                // Filled in by stage 4 of dev.md.
-                Page::Timers => gtk4::Box::new(gtk4::Orientation::Vertical, 0).upcast(),
+                Page::Timers => timers.root.clone().upcast(),
             };
             stack.add_named(&child, Some(page.name()));
         }
@@ -153,11 +168,31 @@ impl Window {
         narrow.add_setter(&split, "collapsed", Some(&true.to_value()));
         window.add_breakpoint(narrow);
 
+        // Esc silences a ringing alert before it does anything else.
+        let keys = gtk4::EventControllerKey::new();
+        keys.set_propagation_phase(gtk4::PropagationPhase::Capture);
+        keys.connect_key_pressed(glib::clone!(
+            #[weak]
+            ari,
+            #[upgrade_or]
+            glib::Propagation::Proceed,
+            move |_, key, _, _| {
+                if key == gtk4::gdk::Key::Escape && ari.stop_alerts() {
+                    glib::Propagation::Stop
+                } else {
+                    glib::Propagation::Proceed
+                }
+            }
+        ));
+        window.add_controller(keys);
+
         let window = Rc::new(Self {
             window,
             chat,
             remembered,
+            timers,
             skills,
+            pages: pages.clone(),
             page: Cell::new(Page::Conversation),
             facts: Cell::new(0),
             title,
@@ -188,6 +223,25 @@ impl Window {
 
     pub fn present(&self) {
         self.window.present();
+    }
+
+    pub fn gtk(&self) -> &adw::ApplicationWindow {
+        &self.window
+    }
+
+    /// Show page `page`, as picking it in the sidebar does.
+    pub fn select(&self, page: Page) {
+        let index = Page::ALL.iter().position(|p| *p == page).unwrap_or(0);
+        if let Some(row) = self.pages.row_at_index(index as i32) {
+            self.pages.select_row(Some(&row));
+            row.emit_activate();
+        }
+    }
+
+    /// Show skill `id` from the store on the Skills page.
+    pub fn show_skill(&self, id: &str) {
+        self.select(Page::Skills);
+        self.skills.show_skill(id);
     }
 
     pub fn show_facts(&self, facts: &[String]) {

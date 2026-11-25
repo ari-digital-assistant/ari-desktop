@@ -26,15 +26,18 @@ clap = { version = "4", features = ["derive"] }
 # The engine, at the revision this app is tested with. For local work against
 # a checkout, patch it in an untracked .cargo/config.toml:
 #   [patch."https://github.com/ari-digital-assistant/ari-engine"]
+#   ari-core = { path = "../ari-engine/crates/ari-core" }
 #   ari-engine = { path = "../ari-engine/crates/ari-engine" }
 #   ari-runtime = { path = "../ari-engine/crates/ari-runtime" }
 #   ari-skill-loader = { path = "../ari-engine/crates/ari-skill-loader" }
 #   ari-voice = { path = "../ari-engine/crates/ari-voice" }
 # Without `llm`: the on-device assistant comes with stage 9 of dev.md.
-ari-engine = { git = "https://github.com/ari-digital-assistant/ari-engine", rev = "46ac9205b32154e7a1ba04a53358616161e67d17", default-features = false }
-ari-runtime = { git = "https://github.com/ari-digital-assistant/ari-engine", rev = "46ac9205b32154e7a1ba04a53358616161e67d17", default-features = false }
-ari-skill-loader = { git = "https://github.com/ari-digital-assistant/ari-engine", rev = "46ac9205b32154e7a1ba04a53358616161e67d17" }
-ari-voice = { git = "https://github.com/ari-digital-assistant/ari-engine", rev = "46ac9205b32154e7a1ba04a53358616161e67d17" }
+# What a skill's envelope asks for, and what pressing a card's button does.
+ari-core = { git = "https://github.com/ari-digital-assistant/ari-engine", rev = "6f6401dfc37c8b13447ee84dfc054bfb49659a51" }
+ari-engine = { git = "https://github.com/ari-digital-assistant/ari-engine", rev = "6f6401dfc37c8b13447ee84dfc054bfb49659a51", default-features = false }
+ari-runtime = { git = "https://github.com/ari-digital-assistant/ari-engine", rev = "6f6401dfc37c8b13447ee84dfc054bfb49659a51", default-features = false }
+ari-skill-loader = { git = "https://github.com/ari-digital-assistant/ari-engine", rev = "6f6401dfc37c8b13447ee84dfc054bfb49659a51" }
+ari-voice = { git = "https://github.com/ari-digital-assistant/ari-engine", rev = "6f6401dfc37c8b13447ee84dfc054bfb49659a51" }
 # The conversation log and remembered facts on disk.
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
@@ -45,6 +48,10 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 oo7 = { version = "0.7.3", default-features = false, features = ["tokio", "native_crypto"] }
 # Assistants answer in markdown.
 pulldown-cmark = { version = "0.13.6", default-features = false }
+# Alert sounds. GTK's own media playback is built on GStreamer, but drawing
+# through it from a sound with no window broke the window's drawing; this
+# plays audio only.
+gstreamer = "0.25.4"
 
 [build-dependencies]
 # Builds the icons Ari ships into the binary.

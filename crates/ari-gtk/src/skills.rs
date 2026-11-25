@@ -56,6 +56,8 @@ pub struct SkillsPage {
     /// Bumped by each refresh, so a slow one that's been overtaken drops
     /// what it fetched.
     generation: RefCell<u64>,
+    /// The skill to open once the registry's list is in.
+    opening: RefCell<Option<String>>,
 }
 
 impl SkillsPage {
@@ -124,6 +126,7 @@ impl SkillsPage {
             spinner,
             toasts: toasts.clone(),
             generation: RefCell::new(0),
+            opening: RefCell::default(),
         });
         toggles.connect_active_name_notify(glib::clone!(
             #[weak]
@@ -131,6 +134,16 @@ impl SkillsPage {
             move |_| page.refresh()
         ));
         page
+    }
+
+    /// Show skill `id` from the registry, opened.
+    pub fn show_skill(self: &Rc<Self>, id: &str) {
+        *self.opening.borrow_mut() = Some(id.to_string());
+        if self.browsing() {
+            self.refresh();
+        } else {
+            self.toggles.set_active_name(Some("browse"));
+        }
     }
 
     fn browsing(&self) -> bool {
@@ -170,6 +183,12 @@ impl SkillsPage {
                     Ok(Ok((skills, note))) => {
                         page.show(&skills);
                         page.show_status(note);
+                        let opening = page.opening.take();
+                        if let Some(skill) =
+                            opening.and_then(|id| skills.iter().find(|s| s.id == id))
+                        {
+                            page.open(skill);
+                        }
                     }
                     Ok(Err(error)) => {
                         page.show(&[]);

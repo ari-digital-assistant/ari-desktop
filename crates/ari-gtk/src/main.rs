@@ -9,21 +9,27 @@
 //! starts Ari without a window, which is how it starts at login. Closing the
 //! window never quits it.
 
+mod alarms;
+mod alerts;
 mod ari;
 mod autostart;
+mod cards;
 mod chat;
 mod conversation;
 mod engine;
 mod fields;
 mod hyprland;
 mod i18n;
+mod links;
 mod markdown;
+mod mpris;
 mod preferences;
 mod providers;
 mod remembered;
 mod skill_settings;
 mod skills;
 mod store;
+mod timers;
 mod window;
 
 use std::cell::OnceCell;
@@ -172,4 +178,41 @@ fn install_actions(app: &adw::Application, settings: &gio::Settings, ari: &Rc<Ar
     ));
     app.add_action(&preferences);
     app.set_accels_for_action("app.preferences", &["<Control>comma"]);
+
+    // The buttons on Ari's notifications.
+    let with_text = |name: &str, run: Box<dyn Fn(&str)>| {
+        let action = gio::SimpleAction::new(name, Some(glib::VariantTy::STRING));
+        action.connect_activate(move |_, text| {
+            if let Some(text) = text.and_then(|text| text.str()) {
+                run(text);
+            }
+        });
+        app.add_action(&action);
+    };
+    with_text(
+        "stop-alert",
+        Box::new(glib::clone!(
+            #[weak]
+            ari,
+            move |id| {
+                ari.stop_alert(id);
+            }
+        )),
+    );
+    with_text(
+        "send",
+        Box::new(glib::clone!(
+            #[weak]
+            ari,
+            move |utterance| ari.send(utterance.to_string())
+        )),
+    );
+    with_text("dismiss-notification", Box::new(ari::dismiss_notification));
+    let show_skills = gio::SimpleAction::new("show-skills", None);
+    show_skills.connect_activate(glib::clone!(
+        #[weak]
+        ari,
+        move |_, _| ari.present_page(window::Page::Skills)
+    ));
+    app.add_action(&show_skills);
 }

@@ -32,3 +32,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Installing a skill that doesn't speak Ari's language asks first.
 - Preferences: the language Ari speaks, and whether and for how long it remembers the
   conversation.
+- Skills' cards show under their answers: timers count down, the weather shows its
+  figures, and the buttons work. A timer rings at its time with a sound and a
+  notification; Stop, Esc or typing "stop" silences it.
+- Alarms: Ari keeps and rings them itself. One that comes while the computer is off or
+  asleep doesn't ring; a notification says it was missed.
+- The Timers and Alarms page lists what's counting down and the alarms, each with a way
+  to cancel it.
+- Web searches, links and directions open in your browser. Preferences picks the search
+  engine (DuckDuckGo by default) and the map (OpenStreetMap by default).
+- Skills can copy to the clipboard.
+- Skills' notifications, and a daily check for skill updates that says when there are
+  some.
+- When no installed skill can answer but one in the store could, Ari offers it with a
+  button that opens it.

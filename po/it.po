@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: ari-desktop\n"
 "Report-Msgid-Bugs-To: https://github.com/ari-digital-assistant/ari-desktop/"
 "issues\n"
-"POT-Creation-Date: 2026-11-25 10:56+0000\n"
+"POT-Creation-Date: 2026-11-25 13:49+0000\n"
 "PO-Revision-Date: 2026-11-24 12:08+0000\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: Italian\n"
@@ -18,27 +18,145 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
+#: crates/ari-gtk/src/ari.rs:149
+msgid "Skill Updates"
+msgstr "Aggiornamenti delle skill"
+
+#: crates/ari-gtk/src/ari.rs:152
+#, rust-format
+msgid "{} skill can be updated."
+msgid_plural "{} skills can be updated."
+msgstr[0] "{} skill può essere aggiornata."
+msgstr[1] "{} skill possono essere aggiornate."
+
+#: crates/ari-gtk/src/ari/presentation.rs:85
+msgid "I couldn't understand that action."
+msgstr "Non ho capito questa azione."
+
+#: crates/ari-gtk/src/ari/presentation.rs:89
+msgid "I can't open apps on this computer."
+msgstr "Non posso aprire app su questo computer."
+
+#: crates/ari-gtk/src/ari/presentation.rs:93
+msgid "What would you like me to search for?"
+msgstr "Cosa devo cercare?"
+
+#: crates/ari-gtk/src/ari/presentation.rs:98
+msgid "I couldn't open the search."
+msgstr "Non riesco ad aprire la ricerca."
+
+#: crates/ari-gtk/src/ari/presentation.rs:100
+#, rust-format
+msgid "Searching for {}."
+msgstr "Cerco {}."
+
+#: crates/ari-gtk/src/ari/presentation.rs:104
+msgid "I couldn't open that link."
+msgstr "Non riesco ad aprire il link."
+
+#: crates/ari-gtk/src/ari/presentation.rs:105
+msgid "Opening that link."
+msgstr "Apro il link."
+
+#: crates/ari-gtk/src/ari/presentation.rs:114
+msgid "I couldn't open the map."
+msgstr "Non riesco ad aprire la mappa."
+
+#: crates/ari-gtk/src/ari/presentation.rs:171
+msgid "What would you like me to play?"
+msgstr "Cosa devo riprodurre?"
+
+#: crates/ari-gtk/src/ari/presentation.rs:172
+msgid "I can't play music by name on this computer."
+msgstr "Su questo computer non posso riprodurre musica per nome."
+
+#: crates/ari-gtk/src/ari/presentation.rs:180
+msgid "Paused."
+msgstr "In pausa."
+
+#: crates/ari-gtk/src/ari/presentation.rs:181
+msgid "Resumed."
+msgstr "Riprendo."
+
+#: crates/ari-gtk/src/ari/presentation.rs:182
+msgid "Skipped."
+msgstr "Vado avanti."
+
+#: crates/ari-gtk/src/ari/presentation.rs:183
+msgid "Going back."
+msgstr "Torno indietro."
+
+#: crates/ari-gtk/src/ari/presentation.rs:184
+msgid "Stopped."
+msgstr "Ho fermato la musica."
+
+#: crates/ari-gtk/src/ari/presentation.rs:185
+msgid "Muted."
+msgstr "Audio disattivato."
+
+#: crates/ari-gtk/src/ari/presentation.rs:186
+msgid "Unmuted."
+msgstr "Audio riattivato."
+
+#: crates/ari-gtk/src/ari/presentation.rs:189
+#, rust-format
+msgid "Volume set to {}%."
+msgstr "Volume impostato al {}%."
+
+#: crates/ari-gtk/src/ari/presentation.rs:191
+msgid "Nothing's playing right now."
+msgstr "Non c'è niente in riproduzione."
+
+#: crates/ari-gtk/src/ari/presentation.rs:194
+msgid "The media player didn't answer."
+msgstr "Il lettore multimediale non risponde."
+
+#: crates/ari-gtk/src/ari/presentation.rs:204
+#: crates/ari-gtk/src/ari/presentation.rs:206
+#: crates/ari-gtk/src/ari/presentation.rs:220
+msgid "I couldn't set that alarm."
+msgstr "Non riesco a impostare la sveglia."
+
+#: crates/ari-gtk/src/ari/presentation.rs:440
+#: crates/ari-gtk/src/ari/presentation.rs:618
+#: crates/ari-gtk/src/ari/presentation.rs:641
+msgid "Stop"
+msgstr "Ferma"
+
+#: crates/ari-gtk/src/ari/presentation.rs:622 crates/ari-gtk/src/timers.rs:79
+msgid "Alarm"
+msgstr "Sveglia"
+
+#: crates/ari-gtk/src/ari/presentation.rs:706
+msgid "Missed while your computer was off or asleep."
+msgstr "Persa mentre il computer era spento o in sospensione."
+
 #: crates/ari-gtk/src/autostart.rs:65
 msgid "Ari keeps running so it's ready when you need it"
 msgstr "Ari resta attivo per essere pronto quando ti serve"
 
-#: crates/ari-gtk/src/chat.rs:36
+#: crates/ari-gtk/src/chat.rs:49
 msgid "Thinking…"
 msgstr "Ci sto pensando…"
 
-#: crates/ari-gtk/src/chat.rs:290
+#: crates/ari-gtk/src/chat.rs:253
+#, rust-format
+msgid "Get {}"
+msgstr "Scarica {}"
+
+#: crates/ari-gtk/src/chat.rs:356
 msgid "Ask Ari something"
 msgstr "Chiedi qualcosa ad Ari"
 
-#: crates/ari-gtk/src/chat.rs:292
+#: crates/ari-gtk/src/chat.rs:358
 msgid "Message Ari"
 msgstr "Messaggio per Ari"
 
-#: crates/ari-gtk/src/chat.rs:316
+#: crates/ari-gtk/src/chat.rs:382
 msgid "Send"
 msgstr "Invia"
 
-#: crates/ari-gtk/src/chat.rs:319
+#: crates/ari-gtk/src/chat.rs:385
 msgid "Talk to Ari"
 msgstr "Parla con Ari"
 
@@ -46,38 +164,38 @@ msgstr "Parla con Ari"
 msgid "Ari for Linux can't set this up yet."
 msgstr "Ari per Linux non può ancora impostarlo."
 
-#: crates/ari-gtk/src/preferences.rs:22
+#: crates/ari-gtk/src/preferences.rs:23
 msgid "Start at Login"
 msgstr "Avvia all'accesso"
 
-#: crates/ari-gtk/src/preferences.rs:24
+#: crates/ari-gtk/src/preferences.rs:25
 msgid "Ari always runs in the background. This also starts it when you log in."
 msgstr ""
 "Ari è sempre attivo in background. Con questa opzione si avvia anche quando "
 "accedi."
 
-#: crates/ari-gtk/src/preferences.rs:30
+#: crates/ari-gtk/src/preferences.rs:31
 msgid "Startup"
 msgstr "Avvio"
 
-#: crates/ari-gtk/src/preferences.rs:38
+#: crates/ari-gtk/src/preferences.rs:39
 msgid "General"
 msgstr "Generali"
 
-#: crates/ari-gtk/src/preferences.rs:53
+#: crates/ari-gtk/src/preferences.rs:55
 #: packaging/gsettings/dev.heyari.Ari.gschema.xml:11
 msgid "Language"
 msgstr "Lingua"
 
-#: crates/ari-gtk/src/preferences.rs:54
+#: crates/ari-gtk/src/preferences.rs:56
 msgid "The language Ari understands and answers in."
 msgstr "La lingua in cui Ari capisce e risponde."
 
-#: crates/ari-gtk/src/preferences.rs:79
+#: crates/ari-gtk/src/preferences.rs:81
 msgid "Remember Conversations"
 msgstr "Ricorda le conversazioni"
 
-#: crates/ari-gtk/src/preferences.rs:81
+#: crates/ari-gtk/src/preferences.rs:83
 msgid ""
 "Ari keeps the last few things said, so it can answer follow-up questions in "
 "context."
@@ -85,103 +203,115 @@ msgstr ""
 "Ari tiene a mente le ultime cose dette, così può rispondere alle domande "
 "successive nel contesto."
 
-#: crates/ari-gtk/src/preferences.rs:88
+#: crates/ari-gtk/src/preferences.rs:90
 msgid "Short"
 msgstr "Breve"
 
-#: crates/ari-gtk/src/preferences.rs:88
+#: crates/ari-gtk/src/preferences.rs:90
 msgid "Medium"
 msgstr "Media"
 
-#: crates/ari-gtk/src/preferences.rs:88
+#: crates/ari-gtk/src/preferences.rs:90
 msgid "Long"
 msgstr "Lunga"
 
-#: crates/ari-gtk/src/preferences.rs:91
+#: crates/ari-gtk/src/preferences.rs:93
 msgid "How Long Ari Remembers"
 msgstr "Quanto ricorda Ari"
 
-#: crates/ari-gtk/src/preferences.rs:113 crates/ari-gtk/src/window.rs:46
+#: crates/ari-gtk/src/preferences.rs:115 crates/ari-gtk/src/window.rs:47
 msgid "Conversation"
 msgstr "Conversazione"
 
-#: crates/ari-gtk/src/preferences.rs:122
+#: crates/ari-gtk/src/preferences.rs:124
 msgid "Ten exchanges, forgotten after 5 minutes of quiet."
 msgstr "Dieci scambi, dimenticati dopo 5 minuti di silenzio."
 
-#: crates/ari-gtk/src/preferences.rs:123
+#: crates/ari-gtk/src/preferences.rs:125
 msgid "Twenty exchanges, forgotten after 15 minutes of quiet."
 msgstr "Venti scambi, dimenticati dopo 15 minuti di silenzio."
 
-#: crates/ari-gtk/src/preferences.rs:124
+#: crates/ari-gtk/src/preferences.rs:126
 msgid "Five exchanges, forgotten after 90 seconds of quiet."
 msgstr "Cinque scambi, dimenticati dopo 90 secondi di silenzio."
 
-#: crates/ari-gtk/src/preferences.rs:138
-#: packaging/gsettings/dev.heyari.Ari.gschema.xml:31
+#: crates/ari-gtk/src/preferences.rs:134
+msgid "Searches and Directions"
+msgstr "Ricerche e indicazioni"
+
+#: crates/ari-gtk/src/preferences.rs:139
+msgid "Search With"
+msgstr "Cerca con"
+
+#: crates/ari-gtk/src/preferences.rs:145
+msgid "Directions From"
+msgstr "Indicazioni da"
+
+#: crates/ari-gtk/src/preferences.rs:188
+#: packaging/gsettings/dev.heyari.Ari.gschema.xml:53
 msgid "Assistant"
 msgstr "Assistente"
 
-#: crates/ari-gtk/src/preferences.rs:142
+#: crates/ari-gtk/src/preferences.rs:192
 msgid "When No Skill Matches"
 msgstr "Quando nessuna skill corrisponde"
 
-#: crates/ari-gtk/src/preferences.rs:162
+#: crates/ari-gtk/src/preferences.rs:212
 msgid ""
 "Install an assistant such as ChatGPT from the Skills page to have it answer."
 msgstr ""
 "Installa un assistente come ChatGPT dalla pagina Skill perché risponda lui."
 
-#: crates/ari-gtk/src/preferences.rs:168
+#: crates/ari-gtk/src/preferences.rs:218
 msgid "None"
 msgstr "Nessuno"
 
-#: crates/ari-gtk/src/preferences.rs:169
+#: crates/ari-gtk/src/preferences.rs:219
 msgid "Ari answers only what a skill does."
 msgstr "Ari risponde solo a ciò che gestisce una skill."
 
-#: crates/ari-gtk/src/preferences.rs:176
+#: crates/ari-gtk/src/preferences.rs:226
 #, rust-format
 msgid "Your questions are sent to {}."
 msgstr "Le tue domande vengono inviate a {}."
 
-#: crates/ari-gtk/src/preferences.rs:278
+#: crates/ari-gtk/src/preferences.rs:328
 msgid "Start with Hyprland"
 msgstr "Avvia con Hyprland"
 
-#: crates/ari-gtk/src/preferences.rs:331
+#: crates/ari-gtk/src/preferences.rs:381
 #, rust-format
 msgid "Couldn't change your Hyprland config: {}"
 msgstr "Impossibile modificare la configurazione di Hyprland: {}"
 
-#: crates/ari-gtk/src/preferences.rs:340
+#: crates/ari-gtk/src/preferences.rs:390
 msgid "Hyprland doesn't start apps at login by itself."
 msgstr "Hyprland non avvia da solo le app all'accesso."
 
-#: crates/ari-gtk/src/preferences.rs:344
+#: crates/ari-gtk/src/preferences.rs:394
 msgid "Ari couldn't find your Hyprland config to add itself to."
 msgstr ""
 "Ari non ha trovato la tua configurazione di Hyprland a cui aggiungersi."
 
-#: crates/ari-gtk/src/preferences.rs:353
+#: crates/ari-gtk/src/preferences.rs:403
 msgid "Ari is in your Hyprland config, so it starts with Hyprland."
 msgstr ""
 "Ari è nella tua configurazione di Hyprland, quindi si avvia con Hyprland."
 
-#: crates/ari-gtk/src/preferences.rs:355 crates/ari-gtk/src/skills.rs:435
-#: crates/ari-gtk/src/skills.rs:580
+#: crates/ari-gtk/src/preferences.rs:405 crates/ari-gtk/src/skills.rs:454
+#: crates/ari-gtk/src/skills.rs:599
 msgid "Remove"
 msgstr "Rimuovi"
 
-#: crates/ari-gtk/src/preferences.rs:360
+#: crates/ari-gtk/src/preferences.rs:410
 msgid "Ari can add itself to your Hyprland config."
 msgstr "Ari può aggiungersi alla tua configurazione di Hyprland."
 
-#: crates/ari-gtk/src/preferences.rs:362
+#: crates/ari-gtk/src/preferences.rs:412
 msgid "Add"
 msgstr "Aggiungi"
 
-#: crates/ari-gtk/src/preferences.rs:367
+#: crates/ari-gtk/src/preferences.rs:417
 #, rust-format
 msgid "Couldn't read your Hyprland config: {}"
 msgstr "Impossibile leggere la configurazione di Hyprland: {}"
@@ -203,35 +333,35 @@ msgstr "Elimina"
 msgid "Delete “{}”"
 msgstr "Elimina «{}»"
 
-#: crates/ari-gtk/src/skills.rs:64 crates/ari-gtk/src/skills.rs:240
+#: crates/ari-gtk/src/skills.rs:66 crates/ari-gtk/src/skills.rs:259
 msgid "Installed"
 msgstr "Installate"
 
-#: crates/ari-gtk/src/skills.rs:68
+#: crates/ari-gtk/src/skills.rs:70
 msgid "Browse"
 msgstr "Sfoglia"
 
-#: crates/ari-gtk/src/skills.rs:197
+#: crates/ari-gtk/src/skills.rs:216
 msgid "The registry has no skills."
 msgstr "Il registro non ha skill."
 
-#: crates/ari-gtk/src/skills.rs:199
+#: crates/ari-gtk/src/skills.rs:218
 msgid "No skills installed yet. Find some under Browse."
 msgstr "Nessuna skill installata. Trovane qualcuna in Sfoglia."
 
-#: crates/ari-gtk/src/skills.rs:227 crates/ari-gtk/src/skills.rs:563
+#: crates/ari-gtk/src/skills.rs:246 crates/ari-gtk/src/skills.rs:582
 msgid "Update"
 msgstr "Aggiorna"
 
-#: crates/ari-gtk/src/skills.rs:249 crates/ari-gtk/src/skills.rs:545
+#: crates/ari-gtk/src/skills.rs:268 crates/ari-gtk/src/skills.rs:564
 msgid "Install"
 msgstr "Installa"
 
-#: crates/ari-gtk/src/skills.rs:323
+#: crates/ari-gtk/src/skills.rs:342
 msgid "Language Not Supported"
 msgstr "Lingua non supportata"
 
-#: crates/ari-gtk/src/skills.rs:325
+#: crates/ari-gtk/src/skills.rs:344
 #, rust-format
 msgid ""
 "{skill} isn't available in {language}. It speaks {languages}, and answers in "
@@ -240,25 +370,26 @@ msgstr ""
 "{skill} non è disponibile in {language}. Parla {languages} e risponde in "
 "quella lingua. Installarla comunque?"
 
-#: crates/ari-gtk/src/skills.rs:334 crates/ari-gtk/src/skills.rs:434
+#: crates/ari-gtk/src/skills.rs:353 crates/ari-gtk/src/skills.rs:453
+#: crates/ari-gtk/src/timers.rs:73
 msgid "Cancel"
 msgstr "Annulla"
 
-#: crates/ari-gtk/src/skills.rs:335
+#: crates/ari-gtk/src/skills.rs:354
 msgid "Install Anyway"
 msgstr "Installa comunque"
 
-#: crates/ari-gtk/src/skills.rs:357
+#: crates/ari-gtk/src/skills.rs:376
 #, rust-format
 msgid "{} installed"
 msgstr "{} installata"
 
-#: crates/ari-gtk/src/skills.rs:384
+#: crates/ari-gtk/src/skills.rs:403
 #, rust-format
 msgid "Use {} as Your Assistant?"
 msgstr "Usare {} come assistente?"
 
-#: crates/ari-gtk/src/skills.rs:387
+#: crates/ari-gtk/src/skills.rs:406
 #, rust-format
 msgid ""
 "{} can answer whatever no skill does. You can change this in Preferences."
@@ -266,213 +397,230 @@ msgstr ""
 "{} può rispondere a tutto ciò che nessuna skill gestisce. Puoi cambiarlo "
 "nelle Preferenze."
 
-#: crates/ari-gtk/src/skills.rs:395
+#: crates/ari-gtk/src/skills.rs:414
 msgid "Not Now"
 msgstr "Non ora"
 
-#: crates/ari-gtk/src/skills.rs:396
+#: crates/ari-gtk/src/skills.rs:415
 #, rust-format
 msgid "Use {}"
 msgstr "Usa {}"
 
-#: crates/ari-gtk/src/skills.rs:417
+#: crates/ari-gtk/src/skills.rs:436
 #, rust-format
 msgid "{} updated"
 msgstr "{} aggiornata"
 
-#: crates/ari-gtk/src/skills.rs:428
+#: crates/ari-gtk/src/skills.rs:447
 #, rust-format
 msgid "Remove {}?"
 msgstr "Rimuovere {}?"
 
-#: crates/ari-gtk/src/skills.rs:429
+#: crates/ari-gtk/src/skills.rs:448
 msgid "Its settings and anything it stored go with it."
 msgstr "Le sue impostazioni e tutto ciò che ha salvato verranno eliminati."
 
-#: crates/ari-gtk/src/skills.rs:439
+#: crates/ari-gtk/src/skills.rs:458
 #, rust-format
 msgid "{} removed"
 msgstr "{} rimossa"
 
-#: crates/ari-gtk/src/skills.rs:484
+#: crates/ari-gtk/src/skills.rs:503
 msgid "Version"
 msgstr "Versione"
 
-#: crates/ari-gtk/src/skills.rs:485
+#: crates/ari-gtk/src/skills.rs:504
 msgid "Author"
 msgstr "Autore"
 
-#: crates/ari-gtk/src/skills.rs:486
+#: crates/ari-gtk/src/skills.rs:505
 msgid "Licence"
 msgstr "Licenza"
 
-#: crates/ari-gtk/src/skills.rs:502
+#: crates/ari-gtk/src/skills.rs:521
 msgid "Website"
 msgstr "Sito web"
 
-#: crates/ari-gtk/src/skills.rs:530
+#: crates/ari-gtk/src/skills.rs:549
 msgid "Settings"
 msgstr "Impostazioni"
 
-#: crates/ari-gtk/src/skills.rs:666
+#: crates/ari-gtk/src/skills.rs:685
 #, rust-format
 msgid "Couldn't save this: {}"
 msgstr "Impossibile salvare: {}"
 
-#: crates/ari-gtk/src/skills.rs:685
+#: crates/ari-gtk/src/skills.rs:704
 #, rust-format
 msgid "Couldn't check for updates: {}"
 msgstr "Impossibile cercare aggiornamenti: {}"
 
-#: crates/ari-gtk/src/skills.rs:755
+#: crates/ari-gtk/src/skills.rs:774
 msgid "Couldn't reach the skill registry. Check your connection."
 msgstr ""
 "Impossibile raggiungere il registro delle skill. Controlla la connessione."
 
-#: crates/ari-gtk/src/skills.rs:758
+#: crates/ari-gtk/src/skills.rs:777
 msgid "The skill registry isn't available right now. Try again later."
 msgstr ""
 "Il registro delle skill non è disponibile al momento. Riprova più tardi."
 
-#: crates/ari-gtk/src/skills.rs:760
+#: crates/ari-gtk/src/skills.rs:779
 msgid "This skill is too large to install."
 msgstr "Questa skill è troppo grande per essere installata."
 
-#: crates/ari-gtk/src/skills.rs:762
+#: crates/ari-gtk/src/skills.rs:781
 msgid "This skill couldn't be verified, so it wasn't installed."
 msgstr ""
 "Non è stato possibile verificare questa skill, quindi non è stata installata."
 
-#: crates/ari-gtk/src/skills.rs:765
+#: crates/ari-gtk/src/skills.rs:784
 msgid "Couldn't read the skill registry. Try again."
 msgstr "Impossibile leggere il registro delle skill. Riprova."
 
-#: crates/ari-gtk/src/skills.rs:767
+#: crates/ari-gtk/src/skills.rs:786
 msgid "The registry no longer has that skill."
 msgstr "Il registro non ha più quella skill."
 
-#: crates/ari-gtk/src/skills.rs:768
+#: crates/ari-gtk/src/skills.rs:787
 msgid "That skill isn't installed."
 msgstr "Quella skill non è installata."
 
-#: crates/ari-gtk/src/skills.rs:770
+#: crates/ari-gtk/src/skills.rs:789
 msgid "Couldn't read the skill's description."
 msgstr "Impossibile leggere la descrizione della skill."
 
-#: crates/ari-gtk/src/skills.rs:773
+#: crates/ari-gtk/src/skills.rs:792
 msgid "Ari's signing key is damaged. Reinstall Ari."
 msgstr "La chiave di firma di Ari è danneggiata. Reinstalla Ari."
 
-#: crates/ari-gtk/src/skills.rs:776
+#: crates/ari-gtk/src/skills.rs:795
 #, rust-format
 msgid "Couldn't change the installed skills: {}"
 msgstr "Impossibile modificare le skill installate: {}"
 
-#: crates/ari-gtk/src/skills.rs:784
+#: crates/ari-gtk/src/skills.rs:803
 #, rust-format
 msgid "Not available in Ari for Linux. Needs {}."
 msgstr "Non disponibile in Ari per Linux. Richiede {}."
 
-#: crates/ari-gtk/src/skills.rs:789
+#: crates/ari-gtk/src/skills.rs:808
 msgid "the internet"
 msgstr "internet"
 
-#: crates/ari-gtk/src/skills.rs:790
+#: crates/ari-gtk/src/skills.rs:809
 msgid "your location"
 msgstr "la tua posizione"
 
-#: crates/ari-gtk/src/skills.rs:791
+#: crates/ari-gtk/src/skills.rs:810
 msgid "notifications"
 msgstr "le notifiche"
 
-#: crates/ari-gtk/src/skills.rs:792
+#: crates/ari-gtk/src/skills.rs:811
 msgid "opening apps"
 msgstr "l'apertura di app"
 
-#: crates/ari-gtk/src/skills.rs:793
+#: crates/ari-gtk/src/skills.rs:812
 msgid "the clipboard"
 msgstr "gli appunti"
 
-#: crates/ari-gtk/src/skills.rs:794
+#: crates/ari-gtk/src/skills.rs:813
 msgid "speaking aloud"
 msgstr "la lettura ad alta voce"
 
-#: crates/ari-gtk/src/skills.rs:795
+#: crates/ari-gtk/src/skills.rs:814
 msgid "storage"
 msgstr "lo spazio di archiviazione"
 
-#: crates/ari-gtk/src/skills.rs:796
+#: crates/ari-gtk/src/skills.rs:815
 msgid "your calendar"
 msgstr "il tuo calendario"
 
-#: crates/ari-gtk/src/skills.rs:797
+#: crates/ari-gtk/src/skills.rs:816
 msgid "your task lists"
 msgstr "i tuoi elenchi di attività"
 
-#: crates/ari-gtk/src/skills.rs:798
+#: crates/ari-gtk/src/skills.rs:817
 msgid "signing in to an account"
 msgstr "l'accesso a un account"
 
-#: crates/ari-gtk/src/skills.rs:799
+#: crates/ari-gtk/src/skills.rs:818
 msgid "media controls"
 msgstr "i controlli multimediali"
 
-#: crates/ari-gtk/src/skills.rs:800
+#: crates/ari-gtk/src/skills.rs:819
 msgid "music services"
 msgstr "i servizi musicali"
 
-#: crates/ari-gtk/src/skills.rs:801
+#: crates/ari-gtk/src/skills.rs:820
 msgid "alerts that ring"
 msgstr "gli avvisi sonori"
 
-#: crates/ari-gtk/src/skills.rs:802
+#: crates/ari-gtk/src/skills.rs:821
 msgid "alarms"
 msgstr "le sveglie"
 
-#: crates/ari-gtk/src/skills.rs:803
+#: crates/ari-gtk/src/skills.rs:822
 msgid "directions"
 msgstr "le indicazioni stradali"
 
-#: crates/ari-gtk/src/skills.rs:804
+#: crates/ari-gtk/src/skills.rs:823
 msgid "sending messages"
 msgstr "l'invio di messaggi"
 
-#: crates/ari-gtk/src/skills.rs:805
+#: crates/ari-gtk/src/skills.rs:824
 msgid "your contacts"
 msgstr "i tuoi contatti"
 
-#: crates/ari-gtk/src/skills.rs:806
+#: crates/ari-gtk/src/skills.rs:825
 msgid "replying to messages"
 msgstr "la risposta ai messaggi"
 
-#: crates/ari-gtk/src/window.rs:47
+#: crates/ari-gtk/src/timers.rs:46
+msgid "No Timers or Alarms"
+msgstr "Nessun timer o sveglia"
+
+#: crates/ari-gtk/src/timers.rs:47
+msgid "Ask Ari to set one."
+msgstr "Chiedi ad Ari di impostarne uno."
+
+#: crates/ari-gtk/src/timers.rs:89
+msgid "Delete Alarm"
+msgstr "Elimina sveglia"
+
+#: crates/ari-gtk/src/timers.rs:118
+#, rust-format
+msgid "{} left"
+msgstr "Mancano {}"
+
+#: crates/ari-gtk/src/window.rs:48
 msgid "Timers and Alarms"
 msgstr "Timer e sveglie"
 
-#: crates/ari-gtk/src/window.rs:48
+#: crates/ari-gtk/src/window.rs:49
 msgid "Skills"
 msgstr "Skill"
 
-#: crates/ari-gtk/src/window.rs:49
+#: crates/ari-gtk/src/window.rs:50
 msgid "Remembered"
 msgstr "Cose che ricordo"
 
-#: crates/ari-gtk/src/window.rs:103
+#: crates/ari-gtk/src/window.rs:118
 msgid "New Conversation"
 msgstr "Nuova conversazione"
 
-#: crates/ari-gtk/src/window.rs:205
+#: crates/ari-gtk/src/window.rs:259
 #, rust-format
 msgid "{} fact"
 msgid_plural "{} facts"
 msgstr[0] "{} cosa ricordata"
 msgstr[1] "{} cose ricordate"
 
-#: crates/ari-gtk/src/window.rs:217
+#: crates/ari-gtk/src/window.rs:271
 msgid "_Preferences"
 msgstr "_Preferenze"
 
-#: crates/ari-gtk/src/window.rs:222
+#: crates/ari-gtk/src/window.rs:276
 msgid "Main Menu"
 msgstr "Menu principale"
 
@@ -544,7 +692,23 @@ msgstr ""
 "Breve sono cinque scambi, dimenticati dopo 90 secondi di silenzio; media "
 "dieci dopo 5 minuti; lunga venti dopo 15 minuti."
 
-#: packaging/gsettings/dev.heyari.Ari.gschema.xml:32
+#: packaging/gsettings/dev.heyari.Ari.gschema.xml:39
+msgid "Search engine"
+msgstr "Motore di ricerca"
+
+#: packaging/gsettings/dev.heyari.Ari.gschema.xml:40
+msgid "Where a web search Ari opens goes."
+msgstr "Dove vanno le ricerche web che Ari apre."
+
+#: packaging/gsettings/dev.heyari.Ari.gschema.xml:48
+msgid "Maps"
+msgstr "Mappe"
+
+#: packaging/gsettings/dev.heyari.Ari.gschema.xml:49
+msgid "Where directions Ari opens go."
+msgstr "Dove vanno le indicazioni stradali che Ari apre."
+
+#: packaging/gsettings/dev.heyari.Ari.gschema.xml:54
 msgid ""
 "The id of the assistant that answers when no skill does. Empty for none."
 msgstr ""

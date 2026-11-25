@@ -26,6 +26,28 @@
       <summary>How long Ari remembers</summary>
       <description>Short is five exchanges, forgotten after 90 seconds of quiet; medium ten after 5 minutes; long twenty after 15 minutes.</description>
     </key>
+    <key name="search-engine" type="s">
+      <choices>
+        <choice value="duckduckgo"/>
+        <choice value="google"/>
+        <choice value="bing"/>
+        <choice value="brave"/>
+        <choice value="startpage"/>
+        <choice value="ecosia"/>
+      </choices>
+      <default>'duckduckgo'</default>
+      <summary>Search engine</summary>
+      <description>Where a web search Ari opens goes.</description>
+    </key>
+    <key name="maps" type="s">
+      <choices>
+        <choice value="openstreetmap"/>
+        <choice value="google"/>
+      </choices>
+      <default>'openstreetmap'</default>
+      <summary>Maps</summary>
+      <description>Where directions Ari opens go.</description>
+    </key>
     <key name="assistant" type="s">
       <default>''</default>
       <summary>Assistant</summary>

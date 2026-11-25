@@ -1,9 +1,12 @@
+crates/ari-gtk/src/ari.rs
+crates/ari-gtk/src/ari/presentation.rs
 crates/ari-gtk/src/autostart.rs
 crates/ari-gtk/src/chat.rs
 crates/ari-gtk/src/fields.rs
 crates/ari-gtk/src/preferences.rs
 crates/ari-gtk/src/remembered.rs
 crates/ari-gtk/src/skills.rs
+crates/ari-gtk/src/timers.rs
 crates/ari-gtk/src/window.rs
 packaging/desktop/dev.heyari.Ari.desktop
 packaging/dev.heyari.Ari.metainfo.xml

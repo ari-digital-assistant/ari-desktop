@@ -10,14 +10,27 @@ use gtk4::prelude::*;
 use libadwaita as adw;
 
 use crate::APP_ID;
-use crate::conversation::Message;
+use crate::conversation::{Attachment, Message};
 use crate::markdown;
+
+/// A card drawn as it is now, by its id, or None once it has gone.
+pub type CardWidget = Box<dyn Fn(&str) -> Option<gtk4::Widget>>;
+
+/// How the conversation draws what shows under an answer.
+pub struct Attachments {
+    pub card: CardWidget,
+    /// Show a skill from the store.
+    pub open_skill: Rc<dyn Fn(&str)>,
+}
 
 pub struct ChatPage {
     pub root: gtk4::Box,
     messages: gtk4::Box,
     /// Each message's box, whose content is drawn again when it changes.
     contents: RefCell<HashMap<u64, gtk4::Box>>,
+    attachments: Attachments,
+    /// Where each card shows, drawn again when it changes.
+    card_slots: RefCell<HashMap<String, Vec<glib::WeakRef<gtk4::Box>>>>,
     history: RefCell<History>,
     thinking: gtk4::Box,
     composer: gtk4::Box,
@@ -27,7 +40,7 @@ pub struct ChatPage {
 
 impl ChatPage {
     /// `send` gets what the user typed, trimmed and never empty.
-    pub fn new(send: impl Fn(String) + 'static) -> Rc<Self> {
+    pub fn new(send: impl Fn(String) + 'static, attachments: Attachments) -> Rc<Self> {
         let messages = gtk4::Box::new(gtk4::Orientation::Vertical, 20);
         let thinking = gtk4::Box::builder().spacing(12).visible(false).build();
         thinking.append(&avatar());
@@ -93,6 +106,8 @@ impl ChatPage {
             root,
             messages,
             contents: RefCell::default(),
+            attachments,
+            card_slots: RefCell::default(),
             history: RefCell::default(),
             thinking,
             composer,
@@ -154,6 +169,7 @@ impl ChatPage {
             self.messages.remove(&child);
         }
         self.contents.borrow_mut().clear();
+        self.card_slots.borrow_mut().clear();
         self.history.borrow_mut().clear();
         self.follow.set(true);
         for message in messages {
@@ -167,8 +183,8 @@ impl ChatPage {
             self.follow.set(true);
             self.history.borrow_mut().push(message.text.clone());
         }
-        let content = gtk4::Box::new(gtk4::Orientation::Vertical, 0);
-        show_content(&content, message);
+        let content = gtk4::Box::new(gtk4::Orientation::Vertical, 10);
+        self.show_content(&content, message);
         let row: gtk4::Widget = if message.from_user {
             content.set_halign(gtk4::Align::End);
             content.add_css_class("user-message");
@@ -188,7 +204,61 @@ impl ChatPage {
 
     pub fn replace(&self, message: &Message) {
         if let Some(content) = self.contents.borrow().get(&message.id) {
-            show_content(content, message);
+            self.show_content(content, message);
+        }
+    }
+
+    /// Draw card `id` again wherever it shows, or nothing once it has gone.
+    pub fn refresh_card(&self, id: &str) {
+        let mut slots = self.card_slots.borrow_mut();
+        let Some(shown) = slots.get_mut(id) else {
+            return;
+        };
+        shown.retain(|slot| slot.upgrade().is_some());
+        for slot in shown.iter().filter_map(|slot| slot.upgrade()) {
+            self.fill_card(&slot, id);
+        }
+    }
+
+    fn fill_card(&self, slot: &gtk4::Box, id: &str) {
+        while let Some(child) = slot.first_child() {
+            slot.remove(&child);
+        }
+        if let Some(card) = (self.attachments.card)(id) {
+            slot.append(&card);
+        }
+    }
+
+    fn show_content(&self, content: &gtk4::Box, message: &Message) {
+        while let Some(child) = content.first_child() {
+            content.remove(&child);
+        }
+        if !message.text.is_empty() || message.attachments.is_empty() {
+            content.append(&words(message));
+        }
+        for attachment in &message.attachments {
+            match attachment {
+                Attachment::Card { id } => {
+                    let slot = gtk4::Box::builder().halign(gtk4::Align::Start).build();
+                    self.fill_card(&slot, id);
+                    self.card_slots
+                        .borrow_mut()
+                        .entry(id.clone())
+                        .or_default()
+                        .push(slot.downgrade());
+                    content.append(&slot);
+                }
+                Attachment::Suggestion { id, name } => {
+                    let button = gtk4::Button::builder()
+                        .label(gettext("Get {}").replace("{}", name))
+                        .halign(gtk4::Align::Start)
+                        .css_classes(["pill", "suggested-action"])
+                        .build();
+                    let (open, id) = (self.attachments.open_skill.clone(), id.clone());
+                    button.connect_clicked(move |_| open(&id));
+                    content.append(&button);
+                }
+            }
         }
     }
 
@@ -202,12 +272,10 @@ impl ChatPage {
     }
 }
 
-fn show_content(content: &gtk4::Box, message: &Message) {
-    while let Some(child) = content.first_child() {
-        content.remove(&child);
-    }
+/// A message's words, as markdown when the assistant wrote some.
+fn words(message: &Message) -> gtk4::Widget {
     let width = if message.from_user { 56 } else { 72 };
-    let widget: gtk4::Widget = match &message.markdown {
+    match &message.markdown {
         Some(markdown) => markdown::widget(markdown, width).upcast(),
         None => gtk4::Label::builder()
             .label(&message.text)
@@ -218,8 +286,7 @@ fn show_content(content: &gtk4::Box, message: &Message) {
             .max_width_chars(width)
             .build()
             .upcast(),
-    };
-    content.append(&widget);
+    }
 }
 
 /// What the user has sent, for Up and Down in the composer.

@@ -1,23 +1,33 @@
 //! Ari's state in this process, window or no window: the engine, the
-//! conversation log and the remembered facts. The window shows them while
-//! it's open.
+//! conversation log, the remembered facts, and what skills keep on screen and
+//! ringing. The window shows them while it's open.
 
-use std::cell::RefCell;
+mod presentation;
+
+pub use presentation::dismiss_notification;
+
+use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 use std::rc::Rc;
 
 use ari_runtime::skills::SkillRegistryError;
+use ari_voice::session::{ActionOutcome, CardPressed};
+use gettextrs::{gettext, ngettext};
 use gtk4::prelude::*;
 use gtk4::{gio, glib};
 use libadwaita as adw;
 use tokio::runtime::Handle;
-use tracing::warn;
+use tracing::{info, warn};
 
-use crate::conversation::Log;
+use crate::alarms::Alarms;
+use crate::alerts::Sounding;
+use crate::cards::Cards;
+use crate::conversation::{Attachment, Log};
 use crate::engine::{Engine, Event, Setup, conversation_length};
-use crate::window::Window;
+use crate::window::{Page, Window};
 use crate::{providers, store};
+use presentation::Pressed;
 
 pub struct Ari {
     pub engine: Engine,
@@ -30,6 +40,17 @@ pub struct Ari {
     /// Typed turns gone to the engine that haven't answered yet.
     thinking: RefCell<HashSet<u64>>,
     window: RefCell<Option<Rc<Window>>>,
+    cards: RefCell<Cards>,
+    alarms: RefCell<Alarms>,
+    /// The alerts sounding, by id.
+    sounding: RefCell<HashMap<String, Sounding>>,
+    /// What shows under the answer to the turn being answered: the cards and
+    /// suggestions of its action, or of the card button it pressed.
+    held: RefCell<Vec<Attachment>>,
+    /// Wakes Ari for the soonest card deadline or alarm.
+    deadline: RefCell<Option<glib::SourceId>>,
+    /// The volume a mute of the media player left behind.
+    muted: Cell<Option<f64>>,
 }
 
 impl Ari {
@@ -58,6 +79,12 @@ impl Ari {
             answers: RefCell::default(),
             thinking: RefCell::default(),
             window: RefCell::default(),
+            cards: RefCell::new(Cards::open(dir.join("cards.json"))),
+            alarms: RefCell::new(Alarms::open(dir.join("alarms.json"))),
+            sounding: RefCell::default(),
+            held: RefCell::default(),
+            deadline: RefCell::default(),
+            muted: Cell::default(),
         });
         let weak = Rc::downgrade(&ari);
         glib::spawn_future_local(async move {
@@ -79,7 +106,58 @@ impl Ari {
             }
         ));
         ari.follow(settings);
+        // What came while Ari wasn't running is reported missed.
+        ari.due();
+        ari.watch_updates();
         Ok(ari)
+    }
+
+    /// Look for skill updates a minute after starting, then daily. Fetching
+    /// the registry's list also keeps the store suggestions current.
+    fn watch_updates(self: &Rc<Self>) {
+        let weak = Rc::downgrade(self);
+        let check = move || {
+            if let Some(ari) = weak.upgrade() {
+                ari.check_updates();
+            }
+        };
+        glib::timeout_add_seconds_local_once(60, check.clone());
+        glib::timeout_add_seconds_local(24 * 60 * 60, move || {
+            check();
+            glib::ControlFlow::Continue
+        });
+    }
+
+    fn check_updates(&self) {
+        let skills = self.engine.skills.clone();
+        glib::spawn_future_local(async move {
+            let updates = match gio::spawn_blocking(move || skills.check_for_updates()).await {
+                Ok(Ok(updates)) => updates,
+                Ok(Err(error)) => {
+                    info!(%error, "couldn't check for skill updates");
+                    return;
+                }
+                Err(_) => {
+                    warn!("checking for skill updates panicked");
+                    return;
+                }
+            };
+            let Some(app) = gio::Application::default().filter(|_| !updates.is_empty()) else {
+                return;
+            };
+            let count = updates.len();
+            let notification = gio::Notification::new(&gettext("Skill Updates"));
+            notification.set_body(Some(
+                &ngettext(
+                    "{} skill can be updated.",
+                    "{} skills can be updated.",
+                    count as u32,
+                )
+                .replace("{}", &count.to_string()),
+            ));
+            notification.set_default_action("app.show-skills");
+            app.send_notification(Some("skill-updates"), &notification);
+        });
     }
 
     /// Hand the engine each setting as Preferences changes it.
@@ -109,7 +187,7 @@ impl Ari {
     }
 
     /// Show the window, building it the first time.
-    pub fn present(self: &Rc<Self>, app: &adw::Application) {
+    pub fn present(self: &Rc<Self>, app: &adw::Application) -> Rc<Window> {
         let window = self.window.borrow().clone();
         let window = window.unwrap_or_else(|| {
             let window = Window::new(app, self);
@@ -117,9 +195,52 @@ impl Ari {
             window.chat.set_thinking(!self.thinking.borrow().is_empty());
             window.show_facts(&self.facts.borrow());
             *self.window.borrow_mut() = Some(window.clone());
+            self.show_timers();
             window
         });
         window.present();
+        window
+    }
+
+    /// Show skill `id` from the store, as a suggestion's button does.
+    pub fn show_skill(self: &Rc<Self>, id: &str) {
+        if let Some(app) = app() {
+            self.present(&app).show_skill(id);
+        }
+    }
+
+    /// Show the window on page `page`.
+    pub fn present_page(self: &Rc<Self>, page: Page) {
+        if let Some(app) = app() {
+            self.present(&app).select(page);
+        }
+    }
+
+    fn present_timers(self: &Rc<Self>) {
+        self.present_page(Page::Timers);
+    }
+
+    /// Show what's counting down and the alarms on the Timers page.
+    fn show_timers(&self) {
+        if let Some(window) = self.window() {
+            window
+                .timers
+                .show(&self.cards.borrow(), self.alarms.borrow().all());
+        }
+    }
+
+    /// Say `utterance` to the engine, as a notification's button does: its
+    /// answer shows in the conversation.
+    pub fn send(self: &Rc<Self>, utterance: String) {
+        let ari = self.clone();
+        glib::spawn_future_local(async move {
+            let (text, attachments) = ari.respond(utterance).await;
+            if !text.trim().is_empty() || !attachments.is_empty() {
+                let id = ari.add(false, text, None);
+                ari.attach(id, attachments);
+                ari.log.borrow().save();
+            }
+        });
     }
 
     fn window(&self) -> Option<Rc<Window>> {
@@ -176,30 +297,35 @@ impl Ari {
             Event::Finished { turn, finish } => {
                 self.thinking.borrow_mut().remove(&turn);
                 let shown = self.answers.borrow_mut().remove(&turn);
+                let held = self.held.take();
                 // "Clear history": the engine has forgotten the conversation,
                 // so the log goes too, request included, before the reply.
                 if finish.clear {
                     self.clear_log();
                 }
                 if let Some(reply) = finish.reply {
-                    match shown {
-                        Some(id) if !finish.clear => self.replace(id, reply.text, reply.markdown),
-                        _ => {
-                            self.add(false, reply.text, reply.markdown);
+                    let id = match shown {
+                        Some(id) if !finish.clear => {
+                            self.replace(id, reply.text, reply.markdown);
+                            id
                         }
-                    }
+                        _ => self.add(false, reply.text, reply.markdown),
+                    };
+                    self.attach(id, held);
                 }
                 self.log.borrow().save();
                 self.show_thinking();
             }
             Event::Logged(turn) => {
+                let held = self.held.take();
                 if turn.clear {
                     self.clear_log();
                 } else {
                     self.add(true, turn.heard, None);
                 }
                 if let Some(reply) = turn.reply {
-                    self.add(false, reply.text, reply.markdown);
+                    let id = self.add(false, reply.text, reply.markdown);
+                    self.attach(id, held);
                 }
                 self.log.borrow().save();
             }
@@ -210,7 +336,58 @@ impl Ari {
                 });
             }
             Event::SpeechDone(id) => self.engine.speech_finished(id),
+            Event::Action {
+                json,
+                skill_id,
+                done,
+            } => {
+                glib::spawn_future_local(async move {
+                    let ran = self.run_envelope(&json, &skill_id).await;
+                    let (cards, attachments) = self.hold(ran.attachments);
+                    // Only fails once the session has gone, as Ari quits.
+                    let _ = done.send(ActionOutcome {
+                        text: ran.text,
+                        display_text: ran.display,
+                        cards,
+                        attachments,
+                    });
+                });
+            }
+            Event::Targets(done) => {
+                let _ = done.send(self.targets());
+            }
+            Event::Press { card, button, done } => {
+                glib::spawn_future_local(async move {
+                    let pressed = match self.press(&card, &button).await {
+                        None => CardPressed::Gone,
+                        Some(Pressed::Silent) => CardPressed::Silent,
+                        Some(Pressed::Spoken { text, attachments }) => {
+                            let (cards, attachments) = self.hold(attachments);
+                            CardPressed::Spoken {
+                                text,
+                                cards,
+                                attachments,
+                            }
+                        }
+                    };
+                    let _ = done.send(pressed);
+                });
+            }
+            Event::StopAlert(id) => {
+                self.stop_alert(&id);
+            }
         }
+    }
+
+    /// Keep `attachments` for the answer to the turn. Whether they have a
+    /// card, and any at all, as the session asks.
+    fn hold(&self, attachments: Vec<Attachment>) -> (bool, bool) {
+        let cards = attachments
+            .iter()
+            .any(|a| matches!(a, Attachment::Card { .. }));
+        let any = !attachments.is_empty();
+        *self.held.borrow_mut() = attachments;
+        (cards, any)
     }
 
     fn add(&self, from_user: bool, text: String, markdown: Option<String>) -> u64 {
@@ -219,6 +396,19 @@ impl Ari {
             window.chat.add(&message);
         }
         message.id
+    }
+
+    /// Show `attachments` under message `id`.
+    fn attach(&self, id: u64, attachments: Vec<Attachment>) {
+        if attachments.is_empty() {
+            return;
+        }
+        let attached = self.log.borrow_mut().attach(id, attachments).cloned();
+        if let Some(message) = attached
+            && let Some(window) = self.window()
+        {
+            window.chat.replace(&message);
+        }
     }
 
     fn replace(&self, id: u64, text: String, markdown: Option<String>) {
@@ -252,6 +442,11 @@ impl Ari {
         }
         *self.facts.borrow_mut() = facts;
     }
+}
+
+/// The running app, for opening the window from outside it.
+fn app() -> Option<adw::Application> {
+    gio::Application::default()?.downcast().ok()
 }
 
 fn assistant(settings: &gio::Settings, key: &str) -> Option<String> {

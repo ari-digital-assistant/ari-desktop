@@ -16,6 +16,18 @@ pub struct Message {
     /// An assistant's answer as it wrote it, shown in place of `text`.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub markdown: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub attachments: Vec<Attachment>,
+}
+
+/// What shows under an answer besides its words.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum Attachment {
+    /// A skill's card, shown for as long as the skill keeps it.
+    Card { id: String },
+    /// A skill in the store that would answer what was asked.
+    Suggestion { id: String, name: String },
 }
 
 pub struct Log {
@@ -49,6 +61,7 @@ impl Log {
             from_user,
             text,
             markdown,
+            attachments: Vec::new(),
         });
         self.messages.last().expect("just pushed")
     }
@@ -59,6 +72,13 @@ impl Log {
         let message = self.messages.iter_mut().find(|m| m.id == id)?;
         message.text = text;
         message.markdown = markdown;
+        Some(message)
+    }
+
+    /// Show `attachments` under message `id`. None when it has gone.
+    pub fn attach(&mut self, id: u64, attachments: Vec<Attachment>) -> Option<&Message> {
+        let message = self.messages.iter_mut().find(|m| m.id == id)?;
+        message.attachments = attachments;
         Some(message)
     }
 
@@ -156,6 +176,27 @@ mod tests {
         .unwrap();
         let old = Log::open(dir.path().join("conversation.json"));
         assert_eq!(old.messages()[0].markdown, None);
+    }
+
+    #[test]
+    fn an_answer_s_attachments_are_there_after_a_restart() {
+        let (dir, mut log) = log();
+        let id = log.add(false, "Timer set.".into(), None).id;
+        let attachments = vec![
+            Attachment::Card {
+                id: "card_pasta".into(),
+            },
+            Attachment::Suggestion {
+                id: "dev.heyari.coinflip".into(),
+                name: "Coin Flip".into(),
+            },
+        ];
+        log.attach(id, attachments.clone());
+        log.save();
+
+        let reopened = Log::open(dir.path().join("conversation.json"));
+        assert_eq!(reopened.messages()[0].attachments, attachments);
+        assert!(log.attach(id + 1, Vec::new()).is_none());
     }
 
     #[test]

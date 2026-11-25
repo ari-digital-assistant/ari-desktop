@@ -11,6 +11,7 @@ use tracing::warn;
 
 use crate::ari::Ari;
 use crate::fields::{self, Changed};
+use crate::links::{MAPS, SEARCH_ENGINES};
 use crate::providers::{self, LANGUAGES, language_name};
 use crate::skills::saving_failed;
 use crate::{autostart, hyprland};
@@ -41,6 +42,7 @@ pub fn present(app: &adw::Application, settings: &gio::Settings, ari: &Rc<Ari>) 
     page.add(&group);
     page.add(&language_group(settings));
     page.add(&conversation_group(settings));
+    page.add(&web_group(settings));
     dialog.add(&page);
     dialog.add(&assistant_page(settings, ari, &dialog));
     dialog.present(app.active_window().as_ref());
@@ -124,6 +126,54 @@ fn describe_length(row: &adw::ComboRow) {
         _ => gettext("Five exchanges, forgotten after 90 seconds of quiet."),
     };
     row.set_subtitle(&blurb);
+}
+
+/// Where a search and directions Ari opens go.
+fn web_group(settings: &gio::Settings) -> adw::PreferencesGroup {
+    let group = adw::PreferencesGroup::builder()
+        .title(gettext("Searches and Directions"))
+        .build();
+    group.add(&choice_combo(
+        settings,
+        "search-engine",
+        &gettext("Search With"),
+        &SEARCH_ENGINES,
+    ));
+    group.add(&choice_combo(
+        settings,
+        "maps",
+        &gettext("Directions From"),
+        &MAPS,
+    ));
+    group
+}
+
+/// A row choosing setting `key` from `choices`: each its value, its name and
+/// its address.
+fn choice_combo(
+    settings: &gio::Settings,
+    key: &'static str,
+    title: &str,
+    choices: &'static [(&'static str, &'static str, &'static str)],
+) -> adw::ComboRow {
+    let names: Vec<&str> = choices.iter().map(|(_, name, _)| *name).collect();
+    let combo = adw::ComboRow::builder()
+        .title(title)
+        .model(&gtk4::StringList::new(&names))
+        .build();
+    let current = settings.string(key);
+    let at = choices.iter().position(|(value, _, _)| *value == current);
+    combo.set_selected(at.unwrap_or(0) as u32);
+    combo.connect_selected_notify(glib::clone!(
+        #[weak]
+        settings,
+        move |combo| {
+            if let Some((value, _, _)) = choices.get(combo.selected() as usize) {
+                let _ = settings.set_string(key, value);
+            }
+        }
+    ));
+    combo
 }
 
 /// Who answers when no skill does: nobody, or an installed assistant, with

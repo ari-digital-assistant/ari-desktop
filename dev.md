@@ -58,15 +58,15 @@ Keith's check: install Coin flip from the Skills page and "flip a coin" answers;
 
 Keith's check: "set a timer for one minute" shows a counting card, it rings after a minute with a notification, and Stop silences it. "Search for pecorino" opens the browser.
 
-- [ ] **(engine)** Parse the presentation envelope into Rust types in the engine. Android's `PresentationEnvelope.kt` parses it today; Android reads the engine's version through ari-ffi instead.
-- [ ] Cards in the conversation and the command bar: generic cards and the timer card with its countdown. Buttons go through the engine.
-- [ ] Timers ring from a wall-clock deadline, so suspend doesn't stretch them. The alert sends a notification through the Notification portal, plays a sound, and stops by button, Esc or voice.
-- [ ] Alarms: Linux has no shared alarm clock, so Ari keeps and rings them itself. One due while the laptop is asleep doesn't ring, like any other laptop alarm, unless a paired phone has taken it over (stage 7, which moves timers too).
-- [ ] Timers and alarms page listing what's running, with cancel.
-- [ ] A daily check for skill updates, with a notification when there are some.
-- [ ] Store skill suggestions (`set_skill_suggestions_path`): the engine's offer of a skill that isn't installed, shown with a button that opens it. Off until actions run, since the offer is one.
-- [ ] Grant the capabilities as their actions land: `notifications`, `clipboard`, `critical_alert`, `alarm`, `navigation`, `media_control`.
-- [ ] Actions: open links and web searches through the OpenURI portal, clipboard, navigation as a map link, media controls over MPRIS, and dismissing cards, notifications and alerts.
+- [x] **(engine)** Parse the presentation envelope into Rust types in the engine. Android's `PresentationEnvelope.kt` parses it today; Android reads the engine's version through ari-ffi instead.
+- [x] Cards in the conversation and the command bar: generic cards and the timer card with its countdown. Buttons go through the engine. The command bar's come with the command bar in stage 5.
+- [x] Timers ring from a wall-clock deadline, so suspend doesn't stretch them. The alert sends a notification through the Notification portal, plays a sound, and stops by button, Esc or voice.
+- [x] Alarms: Linux has no shared alarm clock, so Ari keeps and rings them itself. One due while the laptop is asleep doesn't ring, like any other laptop alarm, unless a paired phone has taken it over (stage 7, which moves timers too).
+- [x] Timers and alarms page listing what's running, with cancel.
+- [x] A daily check for skill updates, with a notification when there are some.
+- [x] Store skill suggestions (`set_skill_suggestions_path`): the engine's offer of a skill that isn't installed, shown with a button that opens it. Off until actions run, since the offer is one.
+- [x] Grant the capabilities as their actions land: `notifications`, `clipboard`, `critical_alert`, `alarm`, `navigation`, `media_control`.
+- [x] Actions: open links and web searches through the OpenURI portal, clipboard, navigation as a map link, media controls over MPRIS, and dismissing cards, notifications and alerts. Media controls are unchecked: only the Music skill sends them, and it also needs `media_services` and `authorize` (stage 8). Sounds play through GStreamer directly, as GTK's media player broke the window's drawing.
 
 ## Stage 5: Voice from the shortcut
 
@@ -115,6 +115,7 @@ Keith's check: "remind me to call the dentist tomorrow at 10" lands in his CalDA
 
 - [ ] Calendar and tasks over CalDAV, with the account set up in Preferences. Task lists pushed in as the `tasks.lists` vocabulary.
 - [ ] Location through the Location portal.
+- [ ] Directions on OpenStreetMap search near where the user is: without a location, "the airport" found one in Finland.
 - [ ] Skill sign-in (`ari::authorize`): open the browser and take the redirect back.
 - [ ] Media services from the MPRIS players on the system.
 - [ ] Grant `calendar`, `tasks`, `location`, `authorize` and `media_services` as each lands, and draw the settings fields they bring: action, dynamic_select, validate, device_calendar and device_task_list.
