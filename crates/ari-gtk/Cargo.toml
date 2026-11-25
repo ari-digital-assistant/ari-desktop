@@ -17,11 +17,23 @@ gtk4 = { version = "0.11", features = ["v4_22"] }
 libadwaita = { version = "0.9", features = ["v1_9"] }
 # The Background portal, for starting at login inside Flatpak.
 ashpd = { version = "0.14", default-features = false, features = ["tokio", "background"] }
-# ashpd's D-Bus connection runs on Tokio; see `main`.
-tokio = { version = "1", features = ["rt-multi-thread"] }
+# ashpd's D-Bus connection runs on Tokio; see `main`. Its channel carries the
+# engine's callbacks to the main loop.
+tokio = { version = "1", features = ["rt-multi-thread", "sync"] }
 # The system's gettext (glibc's), not a bundled copy.
 gettext-rs = { version = "0.8", features = ["gettext-system"] }
 clap = { version = "4", features = ["derive"] }
+# The engine, at the revision this app is tested with. For local work against
+# a checkout, patch it in an untracked .cargo/config.toml:
+#   [patch."https://github.com/ari-digital-assistant/ari-engine"]
+#   ari-runtime = { path = "../ari-engine/crates/ari-runtime" }
+#   ari-voice = { path = "../ari-engine/crates/ari-voice" }
+# Without `llm`: the on-device assistant comes with stage 9 of dev.md.
+ari-runtime = { git = "https://github.com/ari-digital-assistant/ari-engine", rev = "d0c1d239f7163025fa71e183dfbe078f88112e6a", default-features = false }
+ari-voice = { git = "https://github.com/ari-digital-assistant/ari-engine", rev = "d0c1d239f7163025fa71e183dfbe078f88112e6a" }
+# The conversation log and remembered facts on disk.
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 

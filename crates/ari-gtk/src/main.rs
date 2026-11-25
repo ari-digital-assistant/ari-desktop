@@ -9,11 +9,20 @@
 //! starts Ari without a window, which is how it starts at login. Closing the
 //! window never quits it.
 
+mod ari;
 mod autostart;
+mod chat;
+mod conversation;
+mod engine;
 mod hyprland;
 mod i18n;
 mod preferences;
+mod remembered;
+mod store;
 mod window;
+
+use std::cell::OnceCell;
+use std::rc::Rc;
 
 use clap::Parser;
 use gtk4::gio::prelude::ApplicationCommandLineExt;
@@ -21,6 +30,8 @@ use gtk4::prelude::*;
 use gtk4::{gio, glib};
 use libadwaita as adw;
 use tracing::{error, warn};
+
+use crate::ari::Ari;
 
 const APP_ID: &str = "dev.heyari.Ari";
 
@@ -81,13 +92,21 @@ fn main() -> glib::ExitCode {
         .flags(gio::ApplicationFlags::HANDLES_COMMAND_LINE)
         .build();
 
-    app.connect_startup(move |app| {
-        // Ari runs until the session ends, window or no window, so the hold
-        // is never released.
-        std::mem::forget(app.hold());
-        autostart::follow(&settings);
-        install_actions(app, &settings);
-    });
+    // Started with the app, not the window: Ari works with no window open.
+    let ari: Rc<OnceCell<Rc<Ari>>> = Rc::default();
+    app.connect_startup(glib::clone!(
+        #[strong]
+        ari,
+        move |app| {
+            // Ari runs until the session ends, window or no window, so the
+            // hold is never released.
+            std::mem::forget(app.hold());
+            autostart::follow(&settings);
+            install_actions(app, &settings);
+            load_style();
+            let _ = ari.set(Ari::start());
+        }
+    ));
 
     app.connect_command_line(|app, command_line| {
         let args = match Args::try_parse_from(command_line.arguments()) {
@@ -104,9 +123,26 @@ fn main() -> glib::ExitCode {
         glib::ExitCode::SUCCESS
     });
 
-    app.connect_activate(window::present);
+    app.connect_activate(move |app| {
+        if let Some(ari) = ari.get() {
+            ari.present(app);
+        }
+    });
 
     app.run()
+}
+
+fn load_style() {
+    let Some(display) = gtk4::gdk::Display::default() else {
+        return;
+    };
+    let style = gtk4::CssProvider::new();
+    style.load_from_string(include_str!("style.css"));
+    gtk4::style_context_add_provider_for_display(
+        &display,
+        &style,
+        gtk4::STYLE_PROVIDER_PRIORITY_APPLICATION,
+    );
 }
 
 fn install_actions(app: &adw::Application, settings: &gio::Settings) {

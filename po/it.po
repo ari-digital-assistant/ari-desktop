@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: ari-desktop\n"
 "Report-Msgid-Bugs-To: https://github.com/ari-digital-assistant/ari-desktop/"
 "issues\n"
-"POT-Creation-Date: 2026-11-24 12:08+0000\n"
+"POT-Creation-Date: 2026-11-25 09:53+0000\n"
 "PO-Revision-Date: 2026-11-24 12:08+0000\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: Italian\n"
@@ -22,13 +22,35 @@ msgstr ""
 msgid "Ari keeps running so it's ready when you need it"
 msgstr "Ari resta attivo per essere pronto quando ti serve"
 
+#: crates/ari-gtk/src/chat.rs:33
+msgid "Thinking…"
+msgstr "Ci sto pensando…"
+
+#: crates/ari-gtk/src/chat.rs:191
+msgid "Ask Ari something"
+msgstr "Chiedi qualcosa ad Ari"
+
+#: crates/ari-gtk/src/chat.rs:193
+msgid "Message Ari"
+msgstr "Messaggio per Ari"
+
+#: crates/ari-gtk/src/chat.rs:217
+msgid "Send"
+msgstr "Invia"
+
+#: crates/ari-gtk/src/chat.rs:220
+msgid "Talk to Ari"
+msgstr "Parla con Ari"
+
 #: crates/ari-gtk/src/preferences.rs:16
 msgid "Start at Login"
 msgstr "Avvia all'accesso"
 
 #: crates/ari-gtk/src/preferences.rs:18
 msgid "Ari always runs in the background. This also starts it when you log in."
-msgstr "Ari è sempre attivo in background. Con questa opzione si avvia anche quando accedi."
+msgstr ""
+"Ari è sempre attivo in background. Con questa opzione si avvia anche quando "
+"accedi."
 
 #: crates/ari-gtk/src/preferences.rs:30
 msgid "General"
@@ -49,11 +71,13 @@ msgstr "Hyprland non avvia da solo le app all'accesso."
 
 #: crates/ari-gtk/src/preferences.rs:110
 msgid "Ari couldn't find your Hyprland config to add itself to."
-msgstr "Ari non ha trovato la tua configurazione di Hyprland a cui aggiungersi."
+msgstr ""
+"Ari non ha trovato la tua configurazione di Hyprland a cui aggiungersi."
 
 #: crates/ari-gtk/src/preferences.rs:119
 msgid "Ari is in your Hyprland config, so it starts with Hyprland."
-msgstr "Ari è nella tua configurazione di Hyprland, quindi si avvia con Hyprland."
+msgstr ""
+"Ari è nella tua configurazione di Hyprland, quindi si avvia con Hyprland."
 
 #: crates/ari-gtk/src/preferences.rs:121
 msgid "Remove"
@@ -72,11 +96,55 @@ msgstr "Aggiungi"
 msgid "Couldn't read your Hyprland config: {}"
 msgstr "Impossibile leggere la configurazione di Hyprland: {}"
 
-#: crates/ari-gtk/src/window.rs:22
+#: crates/ari-gtk/src/remembered.rs:22
+msgid ""
+"Ari only remembers things when you ask it to: say “remember that…”. These "
+"are kept until you delete them."
+msgstr ""
+"Ari ricorda le cose solo quando glielo chiedi: di' «ricorda che…». Restano "
+"finché non le elimini."
+
+#: crates/ari-gtk/src/remembered.rs:65
+msgid "Delete"
+msgstr "Elimina"
+
+#: crates/ari-gtk/src/remembered.rs:69
+#, rust-format
+msgid "Delete “{}”"
+msgstr "Elimina «{}»"
+
+#: crates/ari-gtk/src/window.rs:45
+msgid "Conversation"
+msgstr "Conversazione"
+
+#: crates/ari-gtk/src/window.rs:46
+msgid "Timers and Alarms"
+msgstr "Timer e sveglie"
+
+#: crates/ari-gtk/src/window.rs:47
+msgid "Skills"
+msgstr "Skill"
+
+#: crates/ari-gtk/src/window.rs:48
+msgid "Remembered"
+msgstr "Cose che ricordo"
+
+#: crates/ari-gtk/src/window.rs:100
+msgid "New Conversation"
+msgstr "Nuova conversazione"
+
+#: crates/ari-gtk/src/window.rs:197
+#, rust-format
+msgid "{} fact"
+msgid_plural "{} facts"
+msgstr[0] "{} cosa ricordata"
+msgstr[1] "{} cose ricordate"
+
+#: crates/ari-gtk/src/window.rs:209
 msgid "_Preferences"
 msgstr "_Preferenze"
 
-#: crates/ari-gtk/src/window.rs:27
+#: crates/ari-gtk/src/window.rs:214
 msgid "Main Menu"
 msgstr "Menu principale"
 
@@ -100,7 +168,10 @@ msgid ""
 "Ari is an open-source digital assistant. Talk to it with a keyboard shortcut "
 "or a wake word, or type, and it answers questions, sets timers and alarms, "
 "and runs skills you install."
-msgstr "Ari è un assistente digitale open-source. Parlagli con una scorciatoia da tastiera o una parola di attivazione, oppure scrivi: risponde alle domande, imposta timer e sveglie ed esegue le skill che installi."
+msgstr ""
+"Ari è un assistente digitale open-source. Parlagli con una scorciatoia da "
+"tastiera o una parola di attivazione, oppure scrivi: risponde alle domande, "
+"imposta timer e sveglie ed esegue le skill che installi."
 
 #: packaging/gsettings/dev.heyari.Ari.gschema.xml:6
 msgid "Start at login"
@@ -110,4 +181,5 @@ msgstr "Avvia all'accesso"
 msgid ""
 "Whether Ari starts when you log in. Ari keeps running in the background "
 "either way."
-msgstr "Se Ari si avvia quando accedi. Ari resta comunque attivo in background."
+msgstr ""
+"Se Ari si avvia quando accedi. Ari resta comunque attivo in background."

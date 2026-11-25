@@ -15,3 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Background portal. Hyprland starts nothing at login by itself, so there Preferences can
   add Ari to your Hyprland config, and switching Start at Login off takes it out again.
 - Italian translation.
+- The main window: a sidebar with Conversation, Timers and Alarms, Skills and Remembered.
+  Timers and Alarms and Skills are empty for now.
+- Type to Ari on the Conversation page. The built-in skills answer: the time, the date,
+  sums and greetings. The conversation is kept when Ari restarts; "clear history" or New
+  Conversation empties it.
+- Ari remembers what you ask it to ("remember that…"). The Remembered page lists it, and
+  each can be deleted.

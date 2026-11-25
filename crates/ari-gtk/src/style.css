@@ -1,0 +1,37 @@
+/* The composer: the text field and its button in a ring, which breathes in
+   the accent colour while Ari is thinking. */
+.composer {
+  border-radius: 30px;
+  padding: 6px 6px 6px 20px;
+  background-color: var(--card-bg-color);
+  box-shadow: 0 0 0 2px var(--border-color), 0 0 0 0 transparent;
+}
+
+.composer.thinking {
+  animation: breathe 2.4s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  50% {
+    box-shadow: 0 0 0 2px var(--accent-bg-color),
+      0 0 0 6px color-mix(in srgb, var(--accent-bg-color) 25%, transparent);
+  }
+}
+
+.composer entry {
+  min-height: 48px;
+  background: none;
+  box-shadow: none;
+  outline: none;
+}
+
+.composer button.circular {
+  min-width: 48px;
+  min-height: 48px;
+}
+
+.user-message {
+  padding: 10px 14px;
+  border-radius: 18px 18px 4px 18px;
+  background-color: color-mix(in srgb, var(--accent-bg-color) 18%, transparent);
+}

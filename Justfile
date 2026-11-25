@@ -79,7 +79,7 @@ pot:
 
 _template OUT:
     xgettext --files-from=po/POTFILES --directory=. --output={{OUT}} \
-        --from-code=UTF-8 --keyword=gettext --add-comments=Translators \
+        --from-code=UTF-8 --keyword=gettext --keyword=ngettext:1,2 --add-comments=Translators \
         --package-name=ari-desktop \
         --msgid-bugs-address=https://github.com/ari-digital-assistant/ari-desktop/issues
 

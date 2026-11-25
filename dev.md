@@ -26,19 +26,19 @@ Keith's check: Ari opens from the app grid, closing the window leaves it running
 - [x] Start at login, on by default, with a setting to turn it off: the Background portal inside Flatpak, an XDG autostart entry outside it.
 - [x] Hyprland ignores XDG autostart, so Preferences offers to add Ari to the user's Hyprland config (`hyprland.lua`, or the older `hyprland.conf`). Switching Start at Login off takes it out.
 - [x] gettext set up from the first string. Italian drafted the same way as Android's, and `just check` fails if a string is untranslated.
-- [/] CI: format check, clippy, tests, packaging and translations on every push (`just check` in a Fedora container). Runs on the first push.
+- [x] CI: format check, clippy, tests, packaging and translations on every push (`just check` in a Fedora container).
 
 ## Stage 2: Main window and typed chat
 
 Keith's check: "what time is it" and "what's 12 times 7" get answers in the conversation, and the conversation is still there after a restart.
 
-- [ ] Split view from the prototype: sidebar with Conversation, Timers and alarms, Skills and Remembered; Preferences as a dialog from the main menu. Pages other than Conversation stay empty until their stage.
-- [ ] Depend on ari-engine's crates by git revision (path override for local work), and build an `ari_runtime::Runtime` with the built-in skills, stored under the app's data directory.
-- [ ] Create the `VoicePipeline` with a `VoiceHost`, attach the session and the runtime, and send typed turns through `submit_text`, as Android's chat does.
-- [ ] Conversation view: message bubbles, streamed answers, markdown and the thinking indicator.
-- [ ] Composer from the prototype: text field with the breathing ring, and a solid accent mic button that turns into Send when there's text. The mic does nothing until stage 5.
-- [ ] Conversation log kept on disk and reloaded on start, with "clear history".
-- [ ] Remembered facts saved whenever the engine flags a change, listed on the Remembered page with delete.
+- [x] Split view from the prototype: sidebar with Conversation, Timers and alarms, Skills and Remembered; Preferences as a dialog from the main menu. Pages other than Conversation stay empty until their stage.
+- [x] Depend on ari-engine's crates by git revision (path override for local work), and build an `ari_runtime::Runtime` with the built-in skills, stored under the app's data directory.
+- [x] Create the `VoicePipeline` with a `VoiceHost`, attach the session and the runtime, and send typed turns through `submit_text`, as Android's chat does.
+- [x] Conversation view: message bubbles, streamed answers and the thinking indicator. Markdown moved to stage 3, where the cloud assistant first writes some.
+- [x] Composer from the prototype: text field with the breathing ring, and a solid accent mic button that turns into Send when there's text. The mic does nothing until stage 5.
+- [x] Conversation log kept on disk and reloaded on start, with "clear history" and the prototype's New Conversation button.
+- [x] Remembered facts saved whenever the engine flags a change, listed on the Remembered page with delete.
 
 ## Stage 3: Skills, assistants and settings
 
@@ -47,6 +47,7 @@ Keith's check: install Coin flip from the Skills page and "flip a coin" answers;
 - [ ] Skills page: browse, install, update and remove community skills through `ari_runtime::skills`.
 - [ ] Each skill's settings drawn from `setting_fields` and saved through the runtime's `SettingsStore`.
 - [ ] Assistant picker through `ari_runtime::assistants`, with API keys kept by the Secret portal (the Secret Service outside Flatpak).
+- [ ] Markdown in assistant answers, rendered in the conversation.
 - [ ] App settings in GSettings.
 - [ ] Preferences: General (language, start at login, conversation memory) and Assistant. Voice and shortcut pages come with stage 5.
 - [ ] Declare the desktop's host capabilities, so skills it can't run (messaging, launching apps by name) are never offered or routed to.
