@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    name: check (Fedora)
+    runs-on: ubuntu-latest
+    # Fedora, for a GTK and libadwaita at least as new as the minimum the
+    # bindings are built against (GNOME 50). Ubuntu's runner images are older.
+    container: fedora:latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install toolchain and system dependencies
+        run: |
+          dnf install -y --setopt=install_weak_deps=False \
+            just cargo clippy rustfmt gcc pkgconf-pkg-config \
+            gtk4-devel libadwaita-devel gettext desktop-file-utils appstream
+
+      - name: Quality gate (fmt, clippy -D warnings, tests, packaging, translations)
+        run: just check

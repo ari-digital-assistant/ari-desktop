@@ -1,0 +1,15 @@
+[workspace]
+resolver = "3"
+members = ["crates/ari-gtk"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "GPL-3.0-only"
+repository = "https://github.com/ari-digital-assistant/ari-desktop"
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }

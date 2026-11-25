@@ -19,21 +19,21 @@ The design is the merged prototype on the canvas: https://claude.ai/artifact/2UL
 
 Keith's check: Ari opens from the app grid, closing the window leaves it running, opening it again brings the same window back, and it starts at login.
 
-- [ ] Cargo workspace with the Linux app crate, depending on ari-engine's crates by git revision (path override for local work).
-- [ ] App ID, desktop entry, icon and AppStream metainfo. Suggested ID: `dev.heyari.Ari`, to match Android's package.
-- [ ] libadwaita application that runs as a single instance: a second launch shows the existing window.
-- [ ] Closing the window hides it and Ari keeps running.
-- [ ] Start at login through the Background portal, on by default, with a setting to turn it off.
-- [ ] Hyprland ignores XDG autostart, so offer to add Ari to the user's Hyprland config. Worked out from scratch here.
-- [ ] gettext set up from the first string. Italian drafted the same way as Android's.
-- [ ] CI: format check, clippy, build and tests on every push.
+- [x] Cargo workspace with the Linux app crate (`crates/ari-gtk`), plus a Justfile: `just run`, `just install-dev`, `just check`.
+- [x] App ID `dev.heyari.Ari`, desktop entry, icons and AppStream metainfo.
+- [x] libadwaita application that runs as a single instance: a second launch shows the existing window.
+- [x] Closing the window hides it and Ari keeps running.
+- [x] Start at login, on by default, with a setting to turn it off: the Background portal inside Flatpak, an XDG autostart entry outside it.
+- [x] Hyprland ignores XDG autostart, so Preferences offers to add Ari to the user's Hyprland config (`hyprland.lua`, or the older `hyprland.conf`). Switching Start at Login off takes it out.
+- [x] gettext set up from the first string. Italian drafted the same way as Android's, and `just check` fails if a string is untranslated.
+- [/] CI: format check, clippy, tests, packaging and translations on every push (`just check` in a Fedora container). Runs on the first push.
 
 ## Stage 2: Main window and typed chat
 
 Keith's check: "what time is it" and "what's 12 times 7" get answers in the conversation, and the conversation is still there after a restart.
 
 - [ ] Split view from the prototype: sidebar with Conversation, Timers and alarms, Skills and Remembered; Preferences as a dialog from the main menu. Pages other than Conversation stay empty until their stage.
-- [ ] Build an `ari_runtime::Runtime` with the built-in skills, stored under the app's data directory.
+- [ ] Depend on ari-engine's crates by git revision (path override for local work), and build an `ari_runtime::Runtime` with the built-in skills, stored under the app's data directory.
 - [ ] Create the `VoicePipeline` with a `VoiceHost`, attach the session and the runtime, and send typed turns through `submit_text`, as Android's chat does.
 - [ ] Conversation view: message bubbles, streamed answers, markdown and the thinking indicator.
 - [ ] Composer from the prototype: text field with the breathing ring, and a solid accent mic button that turns into Send when there's text. The mic does nothing until stage 5.
@@ -73,7 +73,7 @@ Keith's check: the shortcut opens the command bar, "set a timer for ten minutes 
 - [ ] Speech model downloads with progress, checksums and resume. On-device or cloud choice in Preferences.
 - [ ] `SessionHost` voice calls: overlay state, the cue sound, speech, capture mode, model loading.
 - [ ] Command bar from the prototype: layer-shell where the compositor has it, an ordinary window on GNOME. Partials while listening, answer and cards below, type to follow up, "Open in Ari", Esc closes.
-- [ ] Global shortcut through the GlobalShortcuts portal (GNOME 48 and later, KDE, Hyprland), plus an `ari listen` command to bind anywhere else.
+- [ ] Global shortcut through the GlobalShortcuts portal (GNOME 48 and later, KDE, Hyprland), plus an `ari-gtk` option to bind anywhere else.
 - [ ] Speech output with Piper voices through sherpa-onnx's text-to-speech. The maintained Piper (piper1-gpl) is Python only now. Both are GPL-3, like this repo.
 - [ ] Mic button in the main window: talk from the composer, and dictate into the text field.
 - [ ] Barge-in only where an echo canceller is present (PipeWire's echo-cancel module), off everywhere else.
@@ -131,7 +131,7 @@ Keith's check: Ari installs from FriendlyHub or Flathub and passes the checks of
 
 - [ ] Flatpak build of every dependency from source: ONNX Runtime, sherpa-onnx, TFLite Micro, LiteRT-LM.
 - [ ] Flatpak manifest, written by Keith: Flathub accepts neither AI-written manifests nor AI-made submission PRs.
-- [ ] Sandbox pass: every feature works through portals with only the permissions Flathub allows.
+- [ ] Sandbox pass: every feature works through portals with only the permissions Flathub allows. The Hyprland offer needs `--filesystem=xdg-config/hypr`, or falls back to showing the line to copy.
 - [ ] AppStream release notes, screenshots and the AI disclosure Flathub asks for.
 - [ ] Release process: version tags, and CHANGELOG `[Unreleased]` turned into the version.
 - [ ] Publish on Flathub, or on FriendlyHub if Flathub refuses.

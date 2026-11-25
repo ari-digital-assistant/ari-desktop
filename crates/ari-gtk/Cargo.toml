@@ -1,0 +1,29 @@
+[package]
+name = "ari-gtk"
+description = "Ari for Linux: the GTK4/libadwaita app"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+# Minimum supported platform: GTK 4.22 and libadwaita 1.9, which is GNOME 50
+# and Ubuntu 26.04 LTS. The version features make building the test of that:
+# an API from a later release doesn't compile.
+gtk4 = { version = "0.11", features = ["v4_22"] }
+libadwaita = { version = "0.9", features = ["v1_9"] }
+# The Background portal, for starting at login inside Flatpak.
+ashpd = { version = "0.14", default-features = false, features = ["tokio", "background"] }
+# ashpd's D-Bus connection runs on Tokio; see `main`.
+tokio = { version = "1", features = ["rt-multi-thread"] }
+# The system's gettext (glibc's), not a bundled copy.
+gettext-rs = { version = "0.8", features = ["gettext-system"] }
+clap = { version = "4", features = ["derive"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[dev-dependencies]
+tempfile = "3"

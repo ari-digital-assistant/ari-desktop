@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Ari
+Comment=Open-source digital assistant
+Exec=ari-gtk
+Icon=dev.heyari.Ari
+Terminal=false
+Categories=Utility;
+Keywords=assistant;voice;timer;alarm;
+StartupNotify=true

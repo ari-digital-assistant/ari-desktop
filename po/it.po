@@ -1,0 +1,113 @@
+# Italian translations for ari-desktop package.
+# Copyright (C) 2026 THE ari-desktop'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the ari-desktop package.
+# Automatically generated, 2026.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: ari-desktop\n"
+"Report-Msgid-Bugs-To: https://github.com/ari-digital-assistant/ari-desktop/"
+"issues\n"
+"POT-Creation-Date: 2026-11-24 12:08+0000\n"
+"PO-Revision-Date: 2026-11-24 12:08+0000\n"
+"Last-Translator: Automatically generated\n"
+"Language-Team: Italian\n"
+"Language: it\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: crates/ari-gtk/src/autostart.rs:65
+msgid "Ari keeps running so it's ready when you need it"
+msgstr "Ari resta attivo per essere pronto quando ti serve"
+
+#: crates/ari-gtk/src/preferences.rs:16
+msgid "Start at Login"
+msgstr "Avvia all'accesso"
+
+#: crates/ari-gtk/src/preferences.rs:18
+msgid "Ari always runs in the background. This also starts it when you log in."
+msgstr "Ari è sempre attivo in background. Con questa opzione si avvia anche quando accedi."
+
+#: crates/ari-gtk/src/preferences.rs:30
+msgid "General"
+msgstr "Generali"
+
+#: crates/ari-gtk/src/preferences.rs:44
+msgid "Start with Hyprland"
+msgstr "Avvia con Hyprland"
+
+#: crates/ari-gtk/src/preferences.rs:97
+#, rust-format
+msgid "Couldn't change your Hyprland config: {}"
+msgstr "Impossibile modificare la configurazione di Hyprland: {}"
+
+#: crates/ari-gtk/src/preferences.rs:106
+msgid "Hyprland doesn't start apps at login by itself."
+msgstr "Hyprland non avvia da solo le app all'accesso."
+
+#: crates/ari-gtk/src/preferences.rs:110
+msgid "Ari couldn't find your Hyprland config to add itself to."
+msgstr "Ari non ha trovato la tua configurazione di Hyprland a cui aggiungersi."
+
+#: crates/ari-gtk/src/preferences.rs:119
+msgid "Ari is in your Hyprland config, so it starts with Hyprland."
+msgstr "Ari è nella tua configurazione di Hyprland, quindi si avvia con Hyprland."
+
+#: crates/ari-gtk/src/preferences.rs:121
+msgid "Remove"
+msgstr "Rimuovi"
+
+#: crates/ari-gtk/src/preferences.rs:126
+msgid "Ari can add itself to your Hyprland config."
+msgstr "Ari può aggiungersi alla tua configurazione di Hyprland."
+
+#: crates/ari-gtk/src/preferences.rs:128
+msgid "Add"
+msgstr "Aggiungi"
+
+#: crates/ari-gtk/src/preferences.rs:133
+#, rust-format
+msgid "Couldn't read your Hyprland config: {}"
+msgstr "Impossibile leggere la configurazione di Hyprland: {}"
+
+#: crates/ari-gtk/src/window.rs:22
+msgid "_Preferences"
+msgstr "_Preferenze"
+
+#: crates/ari-gtk/src/window.rs:27
+msgid "Main Menu"
+msgstr "Menu principale"
+
+#: packaging/desktop/dev.heyari.Ari.desktop:3
+#: packaging/dev.heyari.Ari.metainfo.xml:6
+#: packaging/dev.heyari.Ari.metainfo.xml:12
+msgid "Ari"
+msgstr "Ari"
+
+#: packaging/desktop/dev.heyari.Ari.desktop:4
+#: packaging/dev.heyari.Ari.metainfo.xml:7
+msgid "Open-source digital assistant"
+msgstr "Assistente digitale open-source"
+
+#: packaging/desktop/dev.heyari.Ari.desktop:9
+msgid "assistant;voice;timer;alarm;"
+msgstr "assistente;voce;timer;sveglia;"
+
+#: packaging/dev.heyari.Ari.metainfo.xml:9
+msgid ""
+"Ari is an open-source digital assistant. Talk to it with a keyboard shortcut "
+"or a wake word, or type, and it answers questions, sets timers and alarms, "
+"and runs skills you install."
+msgstr "Ari è un assistente digitale open-source. Parlagli con una scorciatoia da tastiera o una parola di attivazione, oppure scrivi: risponde alle domande, imposta timer e sveglie ed esegue le skill che installi."
+
+#: packaging/gsettings/dev.heyari.Ari.gschema.xml:6
+msgid "Start at login"
+msgstr "Avvia all'accesso"
+
+#: packaging/gsettings/dev.heyari.Ari.gschema.xml:7
+msgid ""
+"Whether Ari starts when you log in. Ari keeps running in the background "
+"either way."
+msgstr "Se Ari si avvia quando accedi. Ari resta comunque attivo in background."

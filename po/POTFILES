@@ -1,0 +1,6 @@
+crates/ari-gtk/src/autostart.rs
+crates/ari-gtk/src/preferences.rs
+crates/ari-gtk/src/window.rs
+packaging/desktop/dev.heyari.Ari.desktop
+packaging/dev.heyari.Ari.metainfo.xml
+packaging/gsettings/dev.heyari.Ari.gschema.xml

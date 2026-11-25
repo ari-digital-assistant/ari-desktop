@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="ari-desktop">
+  <schema id="dev.heyari.Ari" path="/dev/heyari/Ari/">
+    <key name="start-at-login" type="b">
+      <default>true</default>
+      <summary>Start at login</summary>
+      <description>Whether Ari starts when you log in. Ari keeps running in the background either way.</description>
+    </key>
+  </schema>
+</schemalist>
