@@ -44,13 +44,15 @@ Keith's check: "what time is it" and "what's 12 times 7" get answers in the conv
 
 Keith's check: install Coin flip from the Skills page and "flip a coin" answers; choose ChatGPT, enter a key, and a general question gets an answer.
 
-- [ ] Skills page: browse, install, update and remove community skills through `ari_runtime::skills`.
-- [ ] Each skill's settings drawn from `setting_fields` and saved through the runtime's `SettingsStore`.
-- [ ] Assistant picker through `ari_runtime::assistants`, with API keys kept by the Secret portal (the Secret Service outside Flatpak).
-- [ ] Markdown in assistant answers, rendered in the conversation.
-- [ ] App settings in GSettings.
-- [ ] Preferences: General (language, start at login, conversation memory) and Assistant. Voice and shortcut pages come with stage 5.
-- [ ] Declare the desktop's host capabilities, so skills it can't run (messaging, launching apps by name) are never offered or routed to.
+- [x] Skills page: browse, install, update and remove community skills through `ari_runtime::skills`.
+- [x] Each skill's settings drawn from `setting_fields` and saved through the runtime's `SettingsStore`: text, secret and select fields. The rest come with stage 8.
+- [x] Assistant picker through `ari_runtime::assistants`, with API keys kept by the Secret portal (the Secret Service outside Flatpak).
+- [x] Markdown in assistant answers, rendered in the conversation, tables as grids.
+- [x] Up and Down in the composer step through what was sent before.
+- [x] After installing an assistant when none is chosen, offer to make it the assistant. Ask before installing a skill that doesn't speak Ari's language.
+- [x] App settings in GSettings.
+- [x] Preferences: General (language, start at login, conversation memory) and Assistant. Voice and shortcut pages come with stage 5.
+- [x] Declare the desktop's host capabilities, so skills it can't run (messaging, launching apps by name) are never offered or routed to. **(engine)** Store suggestions and Browse leave out a skill the host can't run. The desktop grants only what it runs so far, `http` and `storage_kv`; each later stage grants its own.
 
 ## Stage 4: Cards, timers, alarms and actions
 
@@ -61,6 +63,9 @@ Keith's check: "set a timer for one minute" shows a counting card, it rings afte
 - [ ] Timers ring from a wall-clock deadline, so suspend doesn't stretch them. The alert sends a notification through the Notification portal, plays a sound, and stops by button, Esc or voice.
 - [ ] Alarms: Linux has no shared alarm clock, so Ari keeps and rings them itself. One due while the laptop is asleep doesn't ring, like any other laptop alarm, unless a paired phone has taken it over (stage 7, which moves timers too).
 - [ ] Timers and alarms page listing what's running, with cancel.
+- [ ] A daily check for skill updates, with a notification when there are some.
+- [ ] Store skill suggestions (`set_skill_suggestions_path`): the engine's offer of a skill that isn't installed, shown with a button that opens it. Off until actions run, since the offer is one.
+- [ ] Grant the capabilities as their actions land: `notifications`, `clipboard`, `critical_alert`, `alarm`, `navigation`, `media_control`.
 - [ ] Actions: open links and web searches through the OpenURI portal, clipboard, navigation as a map link, media controls over MPRIS, and dismissing cards, notifications and alerts.
 
 ## Stage 5: Voice from the shortcut
@@ -75,9 +80,10 @@ Keith's check: the shortcut opens the command bar, "set a timer for ten minutes 
 - [ ] `SessionHost` voice calls: overlay state, the cue sound, speech, capture mode, model loading.
 - [ ] Command bar from the prototype: layer-shell where the compositor has it, an ordinary window on GNOME. Partials while listening, answer and cards below, type to follow up, "Open in Ari", Esc closes.
 - [ ] Global shortcut through the GlobalShortcuts portal (GNOME 48 and later, KDE, Hyprland), plus an `ari-gtk` option to bind anywhere else.
-- [ ] Speech output with Piper voices through sherpa-onnx's text-to-speech. The maintained Piper (piper1-gpl) is Python only now. Both are GPL-3, like this repo.
+- [ ] Speech output with Piper voices through sherpa-onnx's text-to-speech. The maintained Piper (piper1-gpl) is Python only now. Both are GPL-3, like this repo. Grant `tts` with it.
 - [ ] Mic button in the main window: talk from the composer, and dictate into the text field.
 - [ ] Barge-in only where an echo canceller is present (PipeWire's echo-cancel module), off everywhere else.
+- [ ] **(engine)** Tell the assistant whether its answer will be spoken or read. A typed turn is read on screen, so it can be longer and formatted; a spoken one stays one short sentence. The assistant skills' prompts change with it, through an ari-skills PR.
 
 ## Stage 6: Wake word
 
@@ -111,6 +117,7 @@ Keith's check: "remind me to call the dentist tomorrow at 10" lands in his CalDA
 - [ ] Location through the Location portal.
 - [ ] Skill sign-in (`ari::authorize`): open the browser and take the redirect back.
 - [ ] Media services from the MPRIS players on the system.
+- [ ] Grant `calendar`, `tasks`, `location`, `authorize` and `media_services` as each lands, and draw the settings fields they bring: action, dynamic_select, validate, device_calendar and device_task_list.
 
 ## Stage 9: On-device assistant
 

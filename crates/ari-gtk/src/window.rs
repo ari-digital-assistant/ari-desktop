@@ -14,6 +14,7 @@ use crate::APP_ID;
 use crate::ari::Ari;
 use crate::chat::ChatPage;
 use crate::remembered::RememberedPage;
+use crate::skills::SkillsPage;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Page {
@@ -63,6 +64,7 @@ pub struct Window {
     window: adw::ApplicationWindow,
     pub chat: Rc<ChatPage>,
     pub remembered: RememberedPage,
+    skills: Rc<SkillsPage>,
     page: Cell<Page>,
     facts: Cell<usize>,
     title: adw::WindowTitle,
@@ -81,16 +83,17 @@ impl Window {
             ari,
             move |fact| ari.delete_fact(&fact)
         ));
+        let toasts = adw::ToastOverlay::new();
+        let skills = SkillsPage::new(ari, &toasts);
 
         let stack = gtk4::Stack::new();
         for page in Page::ALL {
             let child: gtk4::Widget = match page {
                 Page::Conversation => chat.root.clone().upcast(),
                 Page::Remembered => remembered.root.clone().upcast(),
-                // Filled in by stages 3 and 4 of dev.md.
-                Page::Timers | Page::Skills => {
-                    gtk4::Box::new(gtk4::Orientation::Vertical, 0).upcast()
-                }
+                Page::Skills => skills.root.clone().upcast(),
+                // Filled in by stage 4 of dev.md.
+                Page::Timers => gtk4::Box::new(gtk4::Orientation::Vertical, 0).upcast(),
             };
             stack.add_named(&child, Some(page.name()));
         }
@@ -133,6 +136,7 @@ impl Window {
             .sidebar(&sidebar)
             .content(&content)
             .build();
+        toasts.set_child(Some(&split));
         let window = adw::ApplicationWindow::builder()
             .application(app)
             .title("Ari")
@@ -141,7 +145,7 @@ impl Window {
             .width_request(360)
             .height_request(294)
             .hide_on_close(true)
-            .content(&split)
+            .content(&toasts)
             .build();
         let narrow = adw::Breakpoint::new(
             adw::BreakpointCondition::parse("max-width: 600sp").expect("a valid condition"),
@@ -153,6 +157,7 @@ impl Window {
             window,
             chat,
             remembered,
+            skills,
             page: Cell::new(Page::Conversation),
             facts: Cell::new(0),
             title,
@@ -171,6 +176,9 @@ impl Window {
                 window.page.set(page);
                 window.show_title();
                 split.set_show_content(true);
+                if page == Page::Skills {
+                    window.skills.refresh();
+                }
             }
         ));
         pages.select_row(pages.row_at_index(0).as_ref());

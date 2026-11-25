@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gresources>
+  <!-- The application's base path: GTK adds its icons/ to the icon theme. -->
+  <gresource prefix="/dev/heyari/Ari">
+    <file preprocess="xml-stripblanks">icons/scalable/actions/assistant-symbolic.svg</file>
+  </gresource>
+</gresources>

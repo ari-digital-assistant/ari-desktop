@@ -74,7 +74,7 @@ pot:
     set -euo pipefail
     just _template po/ari-desktop.pot
     while read -r lang; do
-        msgmerge --quiet --update --backup=none "po/$lang.po" po/ari-desktop.pot
+        msgmerge --quiet --update --backup=none --no-fuzzy-matching "po/$lang.po" po/ari-desktop.pot
     done < po/LINGUAS
 
 _template OUT:

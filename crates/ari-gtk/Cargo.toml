@@ -26,16 +26,29 @@ clap = { version = "4", features = ["derive"] }
 # The engine, at the revision this app is tested with. For local work against
 # a checkout, patch it in an untracked .cargo/config.toml:
 #   [patch."https://github.com/ari-digital-assistant/ari-engine"]
+#   ari-engine = { path = "../ari-engine/crates/ari-engine" }
 #   ari-runtime = { path = "../ari-engine/crates/ari-runtime" }
+#   ari-skill-loader = { path = "../ari-engine/crates/ari-skill-loader" }
 #   ari-voice = { path = "../ari-engine/crates/ari-voice" }
 # Without `llm`: the on-device assistant comes with stage 9 of dev.md.
-ari-runtime = { git = "https://github.com/ari-digital-assistant/ari-engine", rev = "d0c1d239f7163025fa71e183dfbe078f88112e6a", default-features = false }
-ari-voice = { git = "https://github.com/ari-digital-assistant/ari-engine", rev = "d0c1d239f7163025fa71e183dfbe078f88112e6a" }
+ari-engine = { git = "https://github.com/ari-digital-assistant/ari-engine", rev = "46ac9205b32154e7a1ba04a53358616161e67d17", default-features = false }
+ari-runtime = { git = "https://github.com/ari-digital-assistant/ari-engine", rev = "46ac9205b32154e7a1ba04a53358616161e67d17", default-features = false }
+ari-skill-loader = { git = "https://github.com/ari-digital-assistant/ari-engine", rev = "46ac9205b32154e7a1ba04a53358616161e67d17" }
+ari-voice = { git = "https://github.com/ari-digital-assistant/ari-engine", rev = "46ac9205b32154e7a1ba04a53358616161e67d17" }
 # The conversation log and remembered facts on disk.
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+# API keys and other secret skill settings: the Secret portal inside Flatpak,
+# the Secret Service outside it.
+oo7 = { version = "0.7.3", default-features = false, features = ["tokio", "native_crypto"] }
+# Assistants answer in markdown.
+pulldown-cmark = { version = "0.13.6", default-features = false }
+
+[build-dependencies]
+# Builds the icons Ari ships into the binary.
+glib-build-tools = "0.22"
 
 [dev-dependencies]
 tempfile = "3"

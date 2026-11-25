@@ -14,10 +14,15 @@ mod autostart;
 mod chat;
 mod conversation;
 mod engine;
+mod fields;
 mod hyprland;
 mod i18n;
+mod markdown;
 mod preferences;
+mod providers;
 mod remembered;
+mod skill_settings;
+mod skills;
 mod store;
 mod window;
 
@@ -61,10 +66,11 @@ fn main() -> glib::ExitCode {
     Args::parse();
 
     i18n::init();
+    gio::resources_register_include!("ari-gtk.gresource").expect("the icons built into Ari");
 
-    // ashpd talks D-Bus through zbus on Tokio, and zbus spawns its tasks into
-    // whichever runtime is current. Everything of ours runs on GLib's main
-    // loop; this runtime only gives zbus somewhere to live.
+    // ashpd and the keyring talk D-Bus through zbus on Tokio, and zbus spawns
+    // its tasks into whichever runtime is current. Everything of ours runs on
+    // GLib's main loop; this runtime only gives zbus somewhere to live.
     let runtime = match tokio::runtime::Runtime::new() {
         Ok(runtime) => runtime,
         Err(error) => {
@@ -94,6 +100,7 @@ fn main() -> glib::ExitCode {
 
     // Started with the app, not the window: Ari works with no window open.
     let ari: Rc<OnceCell<Rc<Ari>>> = Rc::default();
+    let tokio = runtime.handle().clone();
     app.connect_startup(glib::clone!(
         #[strong]
         ari,
@@ -102,9 +109,17 @@ fn main() -> glib::ExitCode {
             // hold is never released.
             std::mem::forget(app.hold());
             autostart::follow(&settings);
-            install_actions(app, &settings);
             load_style();
-            let _ = ari.set(Ari::start());
+            match Ari::start(&settings, tokio.clone()) {
+                Ok(started) => {
+                    install_actions(app, &settings, &started);
+                    let _ = ari.set(started);
+                }
+                Err(error) => {
+                    error!(%error, "Ari's skill store couldn't be opened");
+                    app.quit();
+                }
+            }
         }
     ));
 
@@ -145,13 +160,15 @@ fn load_style() {
     );
 }
 
-fn install_actions(app: &adw::Application, settings: &gio::Settings) {
+fn install_actions(app: &adw::Application, settings: &gio::Settings, ari: &Rc<Ari>) {
     let preferences = gio::SimpleAction::new("preferences", None);
     let settings = settings.clone();
     preferences.connect_activate(glib::clone!(
         #[weak]
         app,
-        move |_, _| preferences::present(&app, &settings)
+        #[weak]
+        ari,
+        move |_, _| preferences::present(&app, &settings, &ari)
     ));
     app.add_action(&preferences);
     app.set_accels_for_action("app.preferences", &["<Control>comma"]);

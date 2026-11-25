@@ -11,11 +11,14 @@ use libadwaita as adw;
 
 use crate::APP_ID;
 use crate::conversation::Message;
+use crate::markdown;
 
 pub struct ChatPage {
     pub root: gtk4::Box,
     messages: gtk4::Box,
-    labels: RefCell<HashMap<u64, gtk4::Label>>,
+    /// Each message's box, whose content is drawn again when it changes.
+    contents: RefCell<HashMap<u64, gtk4::Box>>,
+    history: RefCell<History>,
     thinking: gtk4::Box,
     composer: gtk4::Box,
     /// Keep the newest message in view: true until the user scrolls up.
@@ -89,7 +92,8 @@ impl ChatPage {
         let page = Rc::new(Self {
             root,
             messages,
-            labels: RefCell::default(),
+            contents: RefCell::default(),
+            history: RefCell::default(),
             thinking,
             composer,
             follow,
@@ -111,6 +115,36 @@ impl ChatPage {
             entry,
             move |_| send(&entry)
         ));
+
+        // Up and Down step through what was sent before, as in a shell. They
+        // never move focus out of the field: past the oldest message, Up
+        // would otherwise land in the conversation above.
+        let keys = gtk4::EventControllerKey::new();
+        keys.set_propagation_phase(gtk4::PropagationPhase::Capture);
+        keys.connect_key_pressed(glib::clone!(
+            #[weak]
+            page,
+            #[weak]
+            entry,
+            #[upgrade_or]
+            glib::Propagation::Proceed,
+            move |_, key, _, modifiers| {
+                if !modifiers.is_empty() {
+                    return glib::Propagation::Proceed;
+                }
+                let recalled = match key {
+                    gtk4::gdk::Key::Up => page.history.borrow_mut().back(&entry.text()),
+                    gtk4::gdk::Key::Down => page.history.borrow_mut().forward(),
+                    _ => return glib::Propagation::Proceed,
+                };
+                if let Some(text) = recalled {
+                    entry.set_text(&text);
+                    entry.set_position(-1);
+                }
+                glib::Propagation::Stop
+            }
+        ));
+        entry.add_controller(keys);
         page
     }
 
@@ -119,7 +153,8 @@ impl ChatPage {
         while let Some(child) = self.messages.first_child() {
             self.messages.remove(&child);
         }
-        self.labels.borrow_mut().clear();
+        self.contents.borrow_mut().clear();
+        self.history.borrow_mut().clear();
         self.follow.set(true);
         for message in messages {
             self.add(message);
@@ -130,36 +165,30 @@ impl ChatPage {
         // What the user sends is always brought into view.
         if message.from_user {
             self.follow.set(true);
+            self.history.borrow_mut().push(message.text.clone());
         }
-        let label = gtk4::Label::builder()
-            .label(&message.text)
-            .wrap(true)
-            .wrap_mode(gtk4::pango::WrapMode::WordChar)
-            .xalign(0.0)
-            .selectable(true)
-            .build();
+        let content = gtk4::Box::new(gtk4::Orientation::Vertical, 0);
+        show_content(&content, message);
         let row: gtk4::Widget = if message.from_user {
-            label.set_max_width_chars(56);
-            label.set_halign(gtk4::Align::End);
-            label.add_css_class("user-message");
-            label.clone().upcast()
+            content.set_halign(gtk4::Align::End);
+            content.add_css_class("user-message");
+            content.clone().upcast()
         } else {
-            label.set_max_width_chars(72);
             let row = gtk4::Box::builder()
                 .spacing(12)
                 .halign(gtk4::Align::Start)
                 .build();
             row.append(&avatar());
-            row.append(&label);
+            row.append(&content);
             row.upcast()
         };
         self.messages.append(&row);
-        self.labels.borrow_mut().insert(message.id, label);
+        self.contents.borrow_mut().insert(message.id, content);
     }
 
-    pub fn replace(&self, id: u64, text: &str) {
-        if let Some(label) = self.labels.borrow().get(&id) {
-            label.set_label(text);
+    pub fn replace(&self, message: &Message) {
+        if let Some(content) = self.contents.borrow().get(&message.id) {
+            show_content(content, message);
         }
     }
 
@@ -170,6 +199,75 @@ impl ChatPage {
         } else {
             self.composer.remove_css_class("thinking");
         }
+    }
+}
+
+fn show_content(content: &gtk4::Box, message: &Message) {
+    while let Some(child) = content.first_child() {
+        content.remove(&child);
+    }
+    let width = if message.from_user { 56 } else { 72 };
+    let widget: gtk4::Widget = match &message.markdown {
+        Some(markdown) => markdown::widget(markdown, width).upcast(),
+        None => gtk4::Label::builder()
+            .label(&message.text)
+            .wrap(true)
+            .wrap_mode(gtk4::pango::WrapMode::WordChar)
+            .xalign(0.0)
+            .selectable(true)
+            .max_width_chars(width)
+            .build()
+            .upcast(),
+    };
+    content.append(&widget);
+}
+
+/// What the user has sent, for Up and Down in the composer.
+#[derive(Default)]
+struct History {
+    sent: Vec<String>,
+    /// The message shown in the composer, if it's one from here.
+    at: Option<usize>,
+    /// What was typed before stepping back, for stepping forward past the end.
+    draft: String,
+}
+
+impl History {
+    fn push(&mut self, text: String) {
+        self.sent.push(text);
+        self.at = None;
+    }
+
+    fn clear(&mut self) {
+        *self = Self::default();
+    }
+
+    /// The message before the one shown, keeping `typed` for later. None at
+    /// the oldest.
+    fn back(&mut self, typed: &str) -> Option<String> {
+        let at = match self.at {
+            None if self.sent.is_empty() => return None,
+            None => {
+                self.draft = typed.to_string();
+                self.sent.len() - 1
+            }
+            Some(0) => return None,
+            Some(at) => at - 1,
+        };
+        self.at = Some(at);
+        Some(self.sent[at].clone())
+    }
+
+    /// The message after the one shown, or past the newest what was typed.
+    /// None when not stepping through.
+    fn forward(&mut self) -> Option<String> {
+        let at = self.at?;
+        if at + 1 < self.sent.len() {
+            self.at = Some(at + 1);
+            return Some(self.sent[at + 1].clone());
+        }
+        self.at = None;
+        Some(std::mem::take(&mut self.draft))
     }
 }
 
@@ -220,4 +318,52 @@ fn show_button(button: &gtk4::Button, typed: bool) {
         button.set_tooltip_text(Some(&gettext("Talk to Ari")));
     }
     button.set_sensitive(typed);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn history(sent: &[&str]) -> History {
+        let mut history = History::default();
+        for text in sent {
+            history.push(text.to_string());
+        }
+        history
+    }
+
+    #[test]
+    fn up_steps_back_from_the_newest_and_stops_at_the_oldest() {
+        let mut h = history(&["one", "two", "three"]);
+        assert_eq!(h.back("").as_deref(), Some("three"));
+        assert_eq!(h.back("").as_deref(), Some("two"));
+        assert_eq!(h.back("").as_deref(), Some("one"));
+        assert_eq!(h.back(""), None);
+    }
+
+    #[test]
+    fn down_steps_forward_and_past_the_newest_gives_back_what_was_typed() {
+        let mut h = history(&["one", "two"]);
+        h.back("half a thou");
+        h.back("");
+        assert_eq!(h.forward().as_deref(), Some("two"));
+        assert_eq!(h.forward().as_deref(), Some("half a thou"));
+        assert_eq!(h.forward(), None);
+    }
+
+    #[test]
+    fn nothing_sent_means_nothing_to_step_through() {
+        let mut h = History::default();
+        assert_eq!(h.back("typing"), None);
+        assert_eq!(h.forward(), None);
+    }
+
+    #[test]
+    fn sending_starts_again_from_the_newest() {
+        let mut h = history(&["one", "two"]);
+        h.back("");
+        h.back("");
+        h.push("three".into());
+        assert_eq!(h.back("").as_deref(), Some("three"));
+    }
 }

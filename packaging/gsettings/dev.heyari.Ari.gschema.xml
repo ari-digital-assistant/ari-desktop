@@ -6,5 +6,30 @@
       <summary>Start at login</summary>
       <description>Whether Ari starts when you log in. Ari keeps running in the background either way.</description>
     </key>
+    <key name="language" type="s">
+      <default>''</default>
+      <summary>Language</summary>
+      <description>The language Ari understands and answers in, as a language code. Empty follows the system's language where Ari has it, else English.</description>
+    </key>
+    <key name="conversation-memory" type="b">
+      <default>true</default>
+      <summary>Remember conversations</summary>
+      <description>Whether Ari keeps the last few things said, so follow-up questions are answered in context.</description>
+    </key>
+    <key name="conversation-length" type="s">
+      <choices>
+        <choice value="short"/>
+        <choice value="medium"/>
+        <choice value="long"/>
+      </choices>
+      <default>'short'</default>
+      <summary>How long Ari remembers</summary>
+      <description>Short is five exchanges, forgotten after 90 seconds of quiet; medium ten after 5 minutes; long twenty after 15 minutes.</description>
+    </key>
+    <key name="assistant" type="s">
+      <default>''</default>
+      <summary>Assistant</summary>
+      <description>The id of the assistant that answers when no skill does. Empty for none.</description>
+    </key>
   </schema>
 </schemalist>

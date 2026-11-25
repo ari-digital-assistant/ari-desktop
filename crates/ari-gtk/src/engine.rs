@@ -1,12 +1,18 @@
-//! The engine in this process: the runtime with its skills, and the voice
-//! pipeline whose session runs typed turns now and spoken ones from stage 5
-//! of dev.md. The session calls its host on threads of its own, so [`Host`]
-//! hands each call to the main loop as an [`Event`].
+//! The engine in this process: the runtime with its skills, the skill store
+//! and assistants, and the voice pipeline whose session runs typed turns now
+//! and spoken ones from stage 5 of dev.md. The session calls its host on
+//! threads of its own, so [`Host`] hands each call to the main loop as an
+//! [`Event`].
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use ari_engine::ConversationLength;
+use ari_runtime::assistants::AssistantRegistry;
+use ari_runtime::settings::SettingsStore;
+use ari_runtime::skills::{SkillRegistry, SkillRegistryError};
 use ari_runtime::{Providers, Runtime};
+use ari_skill_loader::{Capability, HostCapabilities, LoadOptions, LocaleProvider};
 use ari_voice::pipeline::{LogLevel, VoiceHost, VoicePipeline};
 use ari_voice::session::{
     ActionOutcome, CaptureMode, CardPressed, InterceptTargets, LoggedTurn, Phrase, SessionHost,
@@ -14,8 +20,20 @@ use ari_voice::session::{
 };
 use ari_voice::wake_log::WakeLog;
 use gtk4::gio;
+use tokio::runtime::Handle;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 use tracing::{debug, info, warn};
+
+use crate::providers::{Clock, Locale, SkillLog};
+use crate::skill_settings::SkillSettings;
+
+/// What Ari for Linux can run so far. Each stage of dev.md adds what it
+/// builds; a skill needing anything more isn't offered or suggested.
+fn host_capabilities() -> HostCapabilities {
+    HostCapabilities::none()
+        .with(Capability::Http)
+        .with(Capability::StorageKv)
+}
 
 /// What the session told the host, for the main loop.
 #[derive(Debug)]
@@ -26,6 +44,7 @@ pub enum Event {
     Answer {
         turn: u64,
         text: String,
+        markdown: Option<String>,
     },
     Finished {
         turn: u64,
@@ -39,26 +58,138 @@ pub enum Event {
     SpeechDone(u64),
 }
 
+/// The `conversation-length` setting's value as the engine's.
+pub fn conversation_length(name: &str) -> ConversationLength {
+    match name {
+        "medium" => ConversationLength::Medium,
+        "long" => ConversationLength::Long,
+        _ => ConversationLength::Short,
+    }
+}
+
+/// How the engine starts: what the user set, and where its files go.
+pub struct Setup<'a> {
+    pub dir: &'a Path,
+    pub facts: Vec<String>,
+    pub language: String,
+    pub conversation_memory: bool,
+    pub conversation_length: ConversationLength,
+    /// Runs the keyring's calls.
+    pub tokio: Handle,
+}
+
 pub struct Engine {
     runtime: Arc<Runtime>,
     pipeline: Arc<VoicePipeline>,
+    pub skills: Arc<SkillRegistry>,
+    pub assistants: Arc<AssistantRegistry>,
+    pub settings: Arc<SkillSettings>,
+    locale: Arc<Locale>,
+    skill_dir: PathBuf,
+    options: LoadOptions,
 }
 
 impl Engine {
-    /// Start the engine with `facts` remembered, keeping the wake log in
-    /// `dir`. What it says arrives on the receiver.
-    pub fn start(dir: &Path, facts: Vec<String>) -> (Self, UnboundedReceiver<Event>) {
+    /// Start the engine with the built-in skills. The installed ones follow
+    /// with [`Self::reload_skills`]. What it says arrives on the receiver.
+    pub fn start(setup: Setup) -> Result<(Self, UnboundedReceiver<Event>), SkillRegistryError> {
+        let dir = setup.dir;
+        let skill_dir = dir.join("skills");
+        let options = ari_runtime::load_options(&dir.join("skill-storage"), host_capabilities());
+        let store = Arc::new(SettingsStore::new());
+        let settings =
+            SkillSettings::open(store.clone(), dir.join("skill-settings.json"), setup.tokio);
+        let locale = Arc::new(Locale::new(setup.language));
+        let runtime = Arc::new(Runtime::new(Providers {
+            log_sink: Arc::new(SkillLog),
+            local_clock: Arc::new(Clock),
+            locale: locale.clone(),
+            config_store: store.clone(),
+            setting_writer: settings.clone(),
+            ..Providers::default()
+        }));
+        let skills = Arc::new(SkillRegistry::open(
+            skill_dir.clone(),
+            options.clone(),
+            store.clone(),
+        )?);
+        let assistants = Arc::new(AssistantRegistry::new(
+            skill_dir.clone(),
+            options.clone(),
+            store,
+        ));
+        {
+            let engine = runtime.engine();
+            engine.set_remembered_facts(setup.facts);
+            engine.set_conversation_memory_enabled(setup.conversation_memory);
+            engine.set_conversation_length(setup.conversation_length);
+        }
+
         let (events, receiver) = unbounded_channel();
         let host = Arc::new(Host { events });
-        let runtime = Arc::new(Runtime::new(Providers::default()));
-        runtime.engine().set_remembered_facts(facts);
         let pipeline = VoicePipeline::new(
             host.clone(),
             Arc::new(WakeLog::new(dir.join("wake-log.txt"))),
         );
         pipeline.attach_session_host(host);
         pipeline.attach_engine(runtime.clone());
-        (Self { runtime, pipeline }, receiver)
+        let engine = Self {
+            runtime,
+            pipeline,
+            skills,
+            assistants,
+            settings,
+            locale,
+            skill_dir,
+            options,
+        };
+        Ok((engine, receiver))
+    }
+
+    /// Run `call` on the runtime off the main loop: the engine is held for
+    /// as long as a turn takes, which can be a while for a cloud assistant.
+    fn off_main<T: Send + 'static>(
+        &self,
+        call: impl FnOnce(&Runtime) -> T + Send + 'static,
+    ) -> gio::JoinHandle<T> {
+        let runtime = self.runtime.clone();
+        gio::spawn_blocking(move || call(&runtime))
+    }
+
+    /// Load the installed skills and assistants into the engine again, after
+    /// an install, update or removal, and at start.
+    pub fn reload_skills(&self) -> gio::JoinHandle<()> {
+        let assistants = self.assistants.clone();
+        let (dir, options) = (self.skill_dir.clone(), self.options.clone());
+        self.off_main(move |runtime| {
+            let loaded = runtime.reload_community_skills(&dir, options);
+            assistants.reload_community_assistants();
+            assistants.apply_to(runtime);
+            info!(loaded, "installed skills loaded");
+        })
+    }
+
+    /// Choose the assistant that answers when no skill does, or none.
+    pub fn set_assistant(&self, id: Option<String>) {
+        self.assistants.set_active_assistant(id);
+        let assistants = self.assistants.clone();
+        self.off_main(move |runtime| assistants.apply_to(runtime));
+    }
+
+    pub fn set_language(&self, code: String) {
+        self.locale.set(code);
+    }
+
+    pub fn language(&self) -> String {
+        self.locale.current_locale()
+    }
+
+    pub fn set_conversation_memory(&self, enabled: bool) {
+        self.off_main(move |runtime| runtime.engine().set_conversation_memory_enabled(enabled));
+    }
+
+    pub fn set_conversation_length(&self, length: ConversationLength) {
+        self.off_main(move |runtime| runtime.engine().set_conversation_length(length));
     }
 
     /// A turn typed into the chat. The chat shows the words itself.
@@ -69,22 +200,17 @@ impl Engine {
     /// Forget the conversation: typed turns still running say nothing more.
     pub fn new_conversation(&self) {
         self.pipeline.cancel_typed();
-        // Off the main loop: a cancelled turn still holds the engine until
-        // its call returns.
-        let runtime = self.runtime.clone();
-        gio::spawn_blocking(move || runtime.engine().clear_conversation());
+        self.off_main(|runtime| runtime.engine().clear_conversation());
     }
 
     pub async fn facts(&self) -> Vec<String> {
-        let runtime = self.runtime.clone();
-        gio::spawn_blocking(move || runtime.engine().remembered_facts())
+        self.off_main(|runtime| runtime.engine().remembered_facts())
             .await
             .unwrap_or_else(|_| panic!("reading the remembered facts panicked"))
     }
 
     pub fn set_facts(&self, facts: Vec<String>) {
-        let runtime = self.runtime.clone();
-        gio::spawn_blocking(move || runtime.engine().set_remembered_facts(facts));
+        self.off_main(move |runtime| runtime.engine().set_remembered_facts(facts));
     }
 
     pub fn speech_finished(&self, id: u64) {
@@ -188,10 +314,11 @@ impl SessionHost for Host {
         self.send(Event::Thinking(turn));
     }
 
-    fn answer_text(&self, turn: u64, so_far: &str, _markdown: Option<&str>) {
+    fn answer_text(&self, turn: u64, so_far: &str, markdown: Option<&str>) {
         self.send(Event::Answer {
             turn,
             text: so_far.to_string(),
+            markdown: markdown.map(str::to_string),
         });
     }
 
@@ -237,11 +364,29 @@ mod tests {
         finish.reply.expect("an answer").text
     }
 
+    /// An engine with its files in `dir`, its events, and the runtime its
+    /// keyring calls would run on, which has to outlive it.
+    fn start(
+        dir: &tempfile::TempDir,
+        facts: Vec<String>,
+    ) -> (Engine, mpsc::Receiver<Event>, tokio::runtime::Runtime) {
+        let tokio = tokio::runtime::Runtime::new().unwrap();
+        let (engine, receiver) = Engine::start(Setup {
+            dir: dir.path(),
+            facts,
+            language: "en".into(),
+            conversation_memory: true,
+            conversation_length: ConversationLength::Short,
+            tokio: tokio.handle().clone(),
+        })
+        .unwrap();
+        (engine, events(receiver), tokio)
+    }
+
     #[test]
     fn a_typed_sum_is_answered() {
         let dir = tempfile::tempdir().unwrap();
-        let (engine, receiver) = Engine::start(dir.path(), Vec::new());
-        let events = events(receiver);
+        let (engine, events, _tokio) = start(&dir, Vec::new());
 
         engine.submit("what's 12 times 7".into());
         let (before, finish) = until_finished(&events);
@@ -253,8 +398,7 @@ mod tests {
     #[test]
     fn a_typed_time_question_is_answered() {
         let dir = tempfile::tempdir().unwrap();
-        let (engine, receiver) = Engine::start(dir.path(), Vec::new());
-        let events = events(receiver);
+        let (engine, events, _tokio) = start(&dir, Vec::new());
 
         engine.submit("what time is it".into());
         let (_, finish) = until_finished(&events);
@@ -266,8 +410,7 @@ mod tests {
     #[test]
     fn remembering_says_the_facts_changed_and_the_engine_has_it() {
         let dir = tempfile::tempdir().unwrap();
-        let (engine, receiver) = Engine::start(dir.path(), vec!["I'm vegetarian".into()]);
-        let events = events(receiver);
+        let (engine, events, _tokio) = start(&dir, vec!["I'm vegetarian".into()]);
 
         engine.submit("remember that my name is Keith".into());
         let (before, _) = until_finished(&events);
@@ -279,5 +422,41 @@ mod tests {
         let facts = gtk4::glib::MainContext::new().block_on(engine.facts());
         // The engine keeps a fact as it normalised the words: lower case.
         assert_eq!(facts, ["I'm vegetarian", "my name is keith"]);
+    }
+
+    /// Against the live registry, so not run by default:
+    /// `cargo test -- --ignored from_the_registry`.
+    #[test]
+    #[ignore]
+    fn a_skill_installed_from_the_registry_answers() {
+        let dir = tempfile::tempdir().unwrap();
+        let (engine, events, _tokio) = start(&dir, Vec::new());
+
+        let browse = engine.skills.browse_registry().unwrap();
+        let message = browse
+            .iter()
+            .find(|e| e.id == "dev.heyari.message")
+            .unwrap();
+        assert!(
+            message
+                .missing_capabilities
+                .contains(&"send_message".to_string())
+        );
+
+        engine
+            .skills
+            .install_skill_by_id("dev.heyari.coinflip")
+            .unwrap();
+        // Spawned inside, as the job reports to the main context it was
+        // started from.
+        gtk4::glib::MainContext::new()
+            .block_on(async { engine.reload_skills().await })
+            .unwrap();
+        engine.submit("flip a coin".into());
+        let answer = reply_text(until_finished(&events).1);
+        assert!(
+            answer.contains("Heads") || answer.contains("Tails"),
+            "{answer}"
+        );
     }
 }
