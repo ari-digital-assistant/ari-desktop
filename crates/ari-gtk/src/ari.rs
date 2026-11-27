@@ -3,8 +3,10 @@
 //! ringing. The window shows them while it's open.
 
 mod presentation;
+mod voice;
 
 pub use presentation::dismiss_notification;
+pub use voice::{Download, SPEECH_KEY};
 
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, HashSet};
@@ -21,10 +23,11 @@ use tokio::runtime::Handle;
 use tracing::{info, warn};
 
 use crate::alarms::Alarms;
-use crate::alerts::Sounding;
+use crate::alerts::{Player, Sounding};
 use crate::cards::Cards;
 use crate::conversation::{Attachment, Log};
 use crate::engine::{Engine, Event, Setup, conversation_length};
+use crate::mic::Mic;
 use crate::window::{Page, Window};
 use crate::{providers, store};
 use presentation::Pressed;
@@ -51,6 +54,12 @@ pub struct Ari {
     deadline: RefCell<Option<glib::SourceId>>,
     /// The volume a mute of the media player left behind.
     muted: Cell<Option<f64>>,
+    /// The microphone, open while a voice turn is under way.
+    mic: RefCell<Option<Mic>>,
+    /// The "your turn" cue while it plays.
+    cue: RefCell<Option<Player>>,
+    /// The speech model downloads under way, by model.
+    downloads: RefCell<HashMap<&'static str, tokio::sync::watch::Receiver<Download>>>,
 }
 
 impl Ari {
@@ -85,6 +94,9 @@ impl Ari {
             held: RefCell::default(),
             deadline: RefCell::default(),
             muted: Cell::default(),
+            mic: RefCell::default(),
+            cue: RefCell::default(),
+            downloads: RefCell::default(),
         });
         let weak = Rc::downgrade(&ari);
         glib::spawn_future_local(async move {
@@ -100,6 +112,8 @@ impl Ari {
             ari,
             async move {
                 ari.engine.settings.load_secrets().await;
+                // With the cloud transcription key, now it's in.
+                ari.follow_speech();
                 if ari.engine.reload_skills().await.is_err() {
                     warn!("loading the installed skills panicked");
                 }
@@ -171,8 +185,14 @@ impl Ari {
                     let engine = &ari.engine;
                     match key {
                         "language" => {
-                            engine.set_language(providers::language(&settings.string(key)))
+                            engine.set_language(providers::language(&settings.string(key)));
+                            // Each language has its own speech model.
+                            ari.follow_speech();
                         }
+                        "speech-recognition"
+                        | "speech-model"
+                        | "speech-server"
+                        | "speech-server-model" => ari.follow_speech(),
                         "conversation-memory" => {
                             engine.set_conversation_memory(settings.boolean(key))
                         }
@@ -376,6 +396,8 @@ impl Ari {
             Event::StopAlert(id) => {
                 self.stop_alert(&id);
             }
+            Event::State(state) => self.voice_state(state),
+            Event::Cue(volume) => self.cue(volume),
         }
     }
 

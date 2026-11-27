@@ -82,6 +82,12 @@ impl SkillSettings {
         self.keyring.get_or_try_init(oo7::Keyring::new).await
     }
 
+    /// `key` of skill `skill`, secret or not, once [`Self::load_secrets`] has
+    /// run for the secrets.
+    pub fn get(&self, skill: &str, key: &str) -> Option<String> {
+        self.store.get_value(skill, key)
+    }
+
     /// Set `key` of skill `skill` for the engine and keep it. An empty
     /// secret is taken out of the keyring.
     pub async fn set(

@@ -10,14 +10,15 @@ default:
 build:
     cargo build
 
-# Run from the source tree, with the settings schema and translations it needs.
-run *ARGS: build schemas locales
+# Run from the source tree, with the settings schema, translations and voice
+# files it needs.
+run *ARGS: build schemas locales voice
     GSETTINGS_SCHEMA_DIR=target/gsettings target/debug/ari-gtk {{ARGS}}
 
 # Install a development copy for this user, so Ari opens from the launcher:
 # the launcher entry (pointing at target/debug), the icons and the settings
 # schema. `just uninstall-dev` takes it out again.
-install-dev: build locales
+install-dev: build locales voice
     #!/usr/bin/env bash
     set -euo pipefail
     data="${XDG_DATA_HOME:-$HOME/.local/share}"
@@ -56,6 +57,19 @@ _icon-cache DIR:
 schemas:
     mkdir -p target/gsettings
     glib-compile-schemas --strict --targetdir target/gsettings packaging/gsettings
+
+# The engine's native voice library, with sherpa-onnx and ONNX Runtime, beside
+# target/debug/ari-gtk, the wake word and speech detector models in
+# target/share/ari/voice and Ari's sounds in target/share/ari/sounds, where it
+# looks for them. Built from the engine checkout at ENGINE; the first build
+# downloads TFLite Micro, ONNX Runtime's headers and sherpa-onnx.
+voice ENGINE="../ari-engine":
+    "{{ENGINE}}/native/voice/build-host.sh"
+    mkdir -p target/debug target/share/ari/voice
+    cp "{{ENGINE}}"/target/voice-native/lib*.so target/debug/
+    cp "{{ENGINE}}"/assets/voice/*.onnx "{{ENGINE}}"/assets/voice/*.tflite "{{ENGINE}}"/assets/voice/*.json target/share/ari/voice/
+    mkdir -p target/share/ari/sounds
+    cp packaging/sounds/*.wav target/share/ari/sounds/
 
 # Compile the translations into target/share/locale, where a binary in
 # target/debug looks for them.

@@ -72,16 +72,16 @@ Keith's check: "set a timer for one minute" shows a counting card, it rings afte
 
 Keith's check: the shortcut opens the command bar, "set a timer for ten minutes for the pasta" is heard, answered aloud, and the timer card shows in the bar.
 
-- [ ] Build `libari_voice_native.so`, sherpa-onnx and ONNX Runtime for the desktop, loaded from beside the binary.
-- [ ] Microphone: 16 kHz mono from PipeWire or PulseAudio, pushed into the pipeline in 30 ms reads. With the wake word off, the mic is open only while Ari is listening.
-- [ ] `VoiceHost`: model files, locale, speech-to-text events, cloud speech-to-text settings, logs.
-- [ ] **(engine)** Move the choice of which speech-to-text model serves which language, and the model manifest format, out of Android's `SttModel.kt` and `ModelManifest.kt`. Downloads stay in each frontend.
-- [ ] Speech model downloads with progress, checksums and resume. On-device or cloud choice in Preferences.
-- [ ] `SessionHost` voice calls: overlay state, the cue sound, speech, capture mode, model loading.
+- [/] Build `libari_voice_native.so`, sherpa-onnx and ONNX Runtime for the desktop, loaded from beside the binary.
+- [/] Microphone: 16 kHz mono from PipeWire or PulseAudio, pushed into the pipeline in 30 ms reads. With the wake word off, the mic is open only while Ari is listening.
+- [/] `VoiceHost`: model files, locale, speech-to-text events, cloud speech-to-text settings, logs.
+- [x] **(engine)** Move the choice of which speech-to-text model serves which language, and the model manifest format, out of Android's `SttModel.kt` and `ModelManifest.kt`. Downloads stay in each frontend.
+- [/] Speech model downloads with progress, checksums and resume. On-device or cloud choice in Preferences.
+- [/] `SessionHost` voice calls: overlay state, the cue sound, speech, capture mode, model loading.
 - [ ] Command bar from the prototype: layer-shell where the compositor has it, an ordinary window on GNOME. Partials while listening, answer and cards below, type to follow up, "Open in Ari", Esc closes.
 - [ ] Global shortcut through the GlobalShortcuts portal (GNOME 48 and later, KDE, Hyprland), plus an `ari-gtk` option to bind anywhere else.
 - [ ] Speech output with Piper voices through sherpa-onnx's text-to-speech. The maintained Piper (piper1-gpl) is Python only now. Both are GPL-3, like this repo. Grant `tts` with it.
-- [ ] Mic button in the main window: talk from the composer, and dictate into the text field.
+- [/] Mic button in the main window: talk from the composer, and dictate into the text field.
 - [ ] Barge-in only where an echo canceller is present (PipeWire's echo-cancel module), off everywhere else.
 - [ ] **(engine)** Tell the assistant whether its answer will be spoken or read. A typed turn is read on screen, so it can be longer and formatted; a spoken one stays one short sentence. The assistant skills' prompts change with it, through an ari-skills PR.
 

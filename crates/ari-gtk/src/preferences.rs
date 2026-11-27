@@ -9,11 +9,12 @@ use std::rc::Rc;
 
 use tracing::warn;
 
-use crate::ari::Ari;
+use crate::ari::{Ari, Download, SPEECH_KEY};
 use crate::fields::{self, Changed};
 use crate::links::{MAPS, SEARCH_ENGINES};
 use crate::providers::{self, LANGUAGES, language_name};
 use crate::skills::saving_failed;
+use crate::speech_models;
 use crate::{autostart, hyprland};
 
 pub fn present(app: &adw::Application, settings: &gio::Settings, ari: &Rc<Ari>) {
@@ -44,6 +45,7 @@ pub fn present(app: &adw::Application, settings: &gio::Settings, ari: &Rc<Ari>) 
     page.add(&conversation_group(settings));
     page.add(&web_group(settings));
     dialog.add(&page);
+    dialog.add(&speech_page(settings, ari, &dialog));
     dialog.add(&assistant_page(settings, ari, &dialog));
     dialog.present(app.active_window().as_ref());
 }
@@ -174,6 +176,280 @@ fn choice_combo(
         }
     ));
     combo
+}
+
+/// The `speech-recognition` setting's values, in the order offered.
+const RECOGNITION: [&str; 3] = ["on-device", "openai", "self-hosted"];
+
+/// How Ari turns speech into words: on this computer, with a model for
+/// Ari's language to download, or by a cloud service, with its address and
+/// key.
+fn speech_page(
+    settings: &gio::Settings,
+    ari: &Rc<Ari>,
+    dialog: &adw::PreferencesDialog,
+) -> adw::PreferencesPage {
+    let page = adw::PreferencesPage::builder()
+        .title(gettext("Speech"))
+        .icon_name("audio-input-microphone-symbolic")
+        .build();
+
+    let labels = [
+        gettext("On This Computer"),
+        gettext("OpenAI"),
+        gettext("Your Own Server"),
+    ];
+    let labels: Vec<&str> = labels.iter().map(String::as_str).collect();
+    let recognition = adw::ComboRow::builder()
+        .title(gettext("Recognise Speech"))
+        .model(&gtk4::StringList::new(&labels))
+        .build();
+    let current = settings.string("speech-recognition");
+    recognition.set_selected(RECOGNITION.iter().position(|r| *r == current).unwrap_or(0) as u32);
+    let how = adw::PreferencesGroup::new();
+    how.add(&recognition);
+    page.add(&how);
+
+    let models = model_group(settings, ari);
+    let openai = adw::PreferencesGroup::builder()
+        .title(gettext("OpenAI"))
+        .description(gettext(
+            "Paste your OpenAI API key. Nothing else to set up.",
+        ))
+        .build();
+    openai.add(&speech_key(ari, dialog));
+    let server = adw::PreferencesGroup::builder()
+        .title(gettext("Your Own Server"))
+        .description(gettext(
+            "Any OpenAI-compatible transcription endpoint: whisper.cpp, faster-whisper, or Home Assistant's Whisper add-on.",
+        ))
+        .build();
+    for (key, title) in [
+        ("speech-server", gettext("Address")),
+        ("speech-server-model", gettext("Model")),
+    ] {
+        let row = adw::EntryRow::builder()
+            .title(title)
+            .text(settings.string(key).as_str())
+            .show_apply_button(true)
+            .build();
+        row.connect_apply(glib::clone!(
+            #[weak]
+            settings,
+            move |row| {
+                let _ = settings.set_string(key, row.text().trim());
+            }
+        ));
+        server.add(&row);
+    }
+    server.add(&speech_key(ari, dialog));
+    page.add(&models);
+    page.add(&openai);
+    page.add(&server);
+
+    let show = move |recognition: &adw::ComboRow| {
+        let at = recognition.selected() as usize;
+        recognition.set_subtitle(&match at {
+            1 => gettext("Most accurate. Needs an API key and a connection."),
+            2 => gettext("Accurate, and your audio stays on your network."),
+            _ => gettext("Transcribes on your computer. Works offline."),
+        });
+        models.set_visible(at == 0);
+        openai.set_visible(at == 1);
+        server.set_visible(at == 2);
+    };
+    show(&recognition);
+    recognition.connect_selected_notify(glib::clone!(
+        #[weak]
+        settings,
+        move |recognition| {
+            if let Some(value) = RECOGNITION.get(recognition.selected() as usize) {
+                let _ = settings.set_string("speech-recognition", value);
+            }
+            show(recognition);
+        }
+    ));
+    page
+}
+
+/// The models for Ari's language, recommended first, each to pick and
+/// download.
+fn model_group(settings: &gio::Settings, ari: &Rc<Ari>) -> adw::PreferencesGroup {
+    let group = adw::PreferencesGroup::builder()
+        .title(gettext("Speech Model"))
+        .description(gettext(
+            "Speech models for Ari's language. Each downloads once, then works offline.",
+        ))
+        .build();
+    let choices = ari_voice::stt_models::on_device_choices(&ari.engine.language());
+    let picked = settings.string("speech-model");
+    let chosen = ari_voice::stt_models::on_device_for(
+        &ari.engine.language(),
+        Some(picked.as_str()).filter(|p| !p.is_empty()),
+    );
+    let mut first: Option<gtk4::CheckButton> = None;
+    for (index, model) in choices.into_iter().enumerate() {
+        let (name, description) = speech_models::describe(&model);
+        let title = if index == 0 {
+            gettext("{} (recommended)").replace("{}", &name)
+        } else {
+            name
+        };
+        let check = gtk4::CheckButton::builder()
+            .active(model == chosen)
+            .valign(gtk4::Align::Center)
+            .build();
+        if let Some(first) = &first {
+            check.set_group(Some(first));
+        } else {
+            first = Some(check.clone());
+        }
+        check.connect_toggled(glib::clone!(
+            #[weak]
+            settings,
+            move |check| {
+                if check.is_active() {
+                    let _ = settings.set_string("speech-model", model.id);
+                }
+            }
+        ));
+        let row = adw::ActionRow::builder()
+            .title(title)
+            .subtitle(description)
+            .activatable_widget(&check)
+            .build();
+        row.add_prefix(&check);
+        let state = gtk4::Stack::builder().valign(gtk4::Align::Center).build();
+        let download = gtk4::Button::builder()
+            .label(gettext("Download"))
+            .css_classes(["pill"])
+            .build();
+        let progress = gtk4::ProgressBar::builder().width_request(120).build();
+        let downloaded = gtk4::Label::builder()
+            .label(gettext("Downloaded"))
+            .css_classes(["dim-label"])
+            .build();
+        let failed = gtk4::Button::builder()
+            .label(gettext("Try Again"))
+            .css_classes(["pill"])
+            .build();
+        state.add_named(&download, Some("download"));
+        state.add_named(&progress, Some("progress"));
+        state.add_named(&downloaded, Some("downloaded"));
+        state.add_named(&failed, Some("failed"));
+        row.add_suffix(&state);
+        state.set_visible_child_name(
+            if speech_models::downloaded(&model, &speech_models::dir(&model)) {
+                "downloaded"
+            } else {
+                "download"
+            },
+        );
+        let follow = Rc::new(glib::clone!(
+            #[weak]
+            state,
+            #[weak]
+            progress,
+            #[weak]
+            failed,
+            move |mut changes: tokio::sync::watch::Receiver<Download>| {
+                glib::spawn_future_local(glib::clone!(
+                    #[weak]
+                    state,
+                    #[weak]
+                    progress,
+                    #[weak]
+                    failed,
+                    async move {
+                        loop {
+                            let now = changes.borrow_and_update().clone();
+                            match now {
+                                Download::Running(done, total) => {
+                                    state.set_visible_child_name("progress");
+                                    progress.set_fraction(done as f64 / total.max(1) as f64);
+                                }
+                                Download::Done => {
+                                    state.set_visible_child_name("downloaded");
+                                    return;
+                                }
+                                Download::Failed(error) => {
+                                    state.set_visible_child_name("failed");
+                                    failed.set_tooltip_text(Some(&error));
+                                    return;
+                                }
+                            }
+                            if changes.changed().await.is_err() {
+                                state.set_visible_child_name("failed");
+                                return;
+                            }
+                        }
+                    }
+                ));
+            }
+        ));
+        if let Some(running) = ari.speech_download(&model) {
+            follow(running);
+        }
+        for button in [&download, &failed] {
+            button.connect_clicked(glib::clone!(
+                #[weak]
+                ari,
+                #[strong]
+                follow,
+                move |_| follow(ari.download_speech(model))
+            ));
+        }
+        group.add(&row);
+    }
+    group
+}
+
+/// The cloud transcription key, kept in the keyring. A saved key shows as
+/// dots, which typing replaces.
+fn speech_key(ari: &Rc<Ari>, dialog: &adw::PreferencesDialog) -> adw::PasswordEntryRow {
+    const SAVED: &str = "••••••••";
+    let (skill, key) = SPEECH_KEY;
+    let entry = adw::PasswordEntryRow::builder()
+        .title(gettext("API Key"))
+        .build();
+    let saved = ari
+        .engine
+        .settings
+        .get(skill, key)
+        .is_some_and(|k| !k.is_empty());
+    if saved {
+        entry.set_text(SAVED);
+        entry.connect_changed(|entry| {
+            let text = entry.text();
+            if text != SAVED && text.contains(SAVED) {
+                entry.set_text(&text.replace(SAVED, ""));
+                entry.set_position(-1);
+            }
+        });
+    }
+    // After the text is set, so the dots don't count as an edit.
+    entry.set_show_apply_button(true);
+    entry.connect_apply(glib::clone!(
+        #[weak]
+        ari,
+        #[weak]
+        dialog,
+        move |entry| {
+            let text = entry.text().trim().to_string();
+            if text == SAVED {
+                return;
+            }
+            glib::spawn_future_local(async move {
+                match ari.engine.settings.set(skill, key, &text, true).await {
+                    Ok(()) => ari.follow_speech(),
+                    Err(error) => {
+                        dialog.add_toast(adw::Toast::new(&saving_failed(&error)));
+                    }
+                }
+            });
+        }
+    ));
+    entry
 }
 
 /// Who answers when no skill does: nobody, or an installed assistant, with

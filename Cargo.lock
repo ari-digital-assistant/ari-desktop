@@ -118,7 +118,7 @@ checksum = "3bc62ac97cc33321f50863d514c3bc38a453947a8f9e781137e47c7401020aed"
 [[package]]
 name = "ari-core"
 version = "0.1.0"
-source = "git+https://github.com/ari-digital-assistant/ari-engine?rev=6f6401dfc37c8b13447ee84dfc054bfb49659a51#6f6401dfc37c8b13447ee84dfc054bfb49659a51"
+source = "git+https://github.com/ari-digital-assistant/ari-engine?rev=4e1b5997f41ea534ca9dcf8cb32e80ba71407f64#4e1b5997f41ea534ca9dcf8cb32e80ba71407f64"
 dependencies = [
  "serde",
  "serde_json",
@@ -127,7 +127,7 @@ dependencies = [
 [[package]]
 name = "ari-engine"
 version = "0.1.0"
-source = "git+https://github.com/ari-digital-assistant/ari-engine?rev=6f6401dfc37c8b13447ee84dfc054bfb49659a51#6f6401dfc37c8b13447ee84dfc054bfb49659a51"
+source = "git+https://github.com/ari-digital-assistant/ari-engine?rev=4e1b5997f41ea534ca9dcf8cb32e80ba71407f64#4e1b5997f41ea534ca9dcf8cb32e80ba71407f64"
 dependencies = [
  "ari-core",
  "ari-skill-loader",
@@ -148,12 +148,15 @@ dependencies = [
  "gettext-rs",
  "glib-build-tools",
  "gstreamer",
+ "gstreamer-app",
  "gtk4",
  "libadwaita",
  "oo7",
  "pulldown-cmark",
+ "reqwest",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "tempfile",
  "tokio",
  "tracing",
@@ -163,7 +166,7 @@ dependencies = [
 [[package]]
 name = "ari-native"
 version = "0.1.0"
-source = "git+https://github.com/ari-digital-assistant/ari-engine?rev=6f6401dfc37c8b13447ee84dfc054bfb49659a51#6f6401dfc37c8b13447ee84dfc054bfb49659a51"
+source = "git+https://github.com/ari-digital-assistant/ari-engine?rev=4e1b5997f41ea534ca9dcf8cb32e80ba71407f64#4e1b5997f41ea534ca9dcf8cb32e80ba71407f64"
 dependencies = [
  "libloading",
 ]
@@ -171,7 +174,7 @@ dependencies = [
 [[package]]
 name = "ari-runtime"
 version = "0.1.0"
-source = "git+https://github.com/ari-digital-assistant/ari-engine?rev=6f6401dfc37c8b13447ee84dfc054bfb49659a51#6f6401dfc37c8b13447ee84dfc054bfb49659a51"
+source = "git+https://github.com/ari-digital-assistant/ari-engine?rev=4e1b5997f41ea534ca9dcf8cb32e80ba71407f64#4e1b5997f41ea534ca9dcf8cb32e80ba71407f64"
 dependencies = [
  "ari-core",
  "ari-engine",
@@ -185,7 +188,7 @@ dependencies = [
 [[package]]
 name = "ari-skill-loader"
 version = "0.2.0"
-source = "git+https://github.com/ari-digital-assistant/ari-engine?rev=6f6401dfc37c8b13447ee84dfc054bfb49659a51#6f6401dfc37c8b13447ee84dfc054bfb49659a51"
+source = "git+https://github.com/ari-digital-assistant/ari-engine?rev=4e1b5997f41ea534ca9dcf8cb32e80ba71407f64#4e1b5997f41ea534ca9dcf8cb32e80ba71407f64"
 dependencies = [
  "ari-core",
  "ed25519-dalek",
@@ -208,7 +211,7 @@ dependencies = [
 [[package]]
 name = "ari-skills"
 version = "0.1.0"
-source = "git+https://github.com/ari-digital-assistant/ari-engine?rev=6f6401dfc37c8b13447ee84dfc054bfb49659a51#6f6401dfc37c8b13447ee84dfc054bfb49659a51"
+source = "git+https://github.com/ari-digital-assistant/ari-engine?rev=4e1b5997f41ea534ca9dcf8cb32e80ba71407f64#4e1b5997f41ea534ca9dcf8cb32e80ba71407f64"
 dependencies = [
  "ari-core",
  "chrono",
@@ -219,7 +222,7 @@ dependencies = [
 [[package]]
 name = "ari-voice"
 version = "0.1.0"
-source = "git+https://github.com/ari-digital-assistant/ari-engine?rev=6f6401dfc37c8b13447ee84dfc054bfb49659a51#6f6401dfc37c8b13447ee84dfc054bfb49659a51"
+source = "git+https://github.com/ari-digital-assistant/ari-engine?rev=4e1b5997f41ea534ca9dcf8cb32e80ba71407f64#4e1b5997f41ea534ca9dcf8cb32e80ba71407f64"
 dependencies = [
  "ari-native",
  "chrono",
@@ -261,6 +264,12 @@ name = "atomic-waker"
 version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
+
+[[package]]
+name = "atomic_refcell"
+version = "0.1.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "21e4227379beff4205943696e6c3e0cd809bacdf3f0edd6e3dd153e2269571a4"
 
 [[package]]
 name = "autocfg"
@@ -1386,6 +1395,61 @@ dependencies = [
  "pin-project-lite",
  "smallvec",
  "thiserror",
+]
+
+[[package]]
+name = "gstreamer-app"
+version = "0.25.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97f8ae9238c2352398dcc084de28df3f7099af216ac6c160b52318d23f25c010"
+dependencies = [
+ "futures-core",
+ "futures-sink",
+ "glib",
+ "gstreamer",
+ "gstreamer-app-sys",
+ "gstreamer-base",
+ "libc",
+]
+
+[[package]]
+name = "gstreamer-app-sys"
+version = "0.25.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0798b8aef6694341d40bb81edc759f8979b896b59f9f0f45d8cfa3bb7bf2e743"
+dependencies = [
+ "glib-sys",
+ "gstreamer-base-sys",
+ "gstreamer-sys",
+ "libc",
+ "system-deps 9.0.1",
+]
+
+[[package]]
+name = "gstreamer-base"
+version = "0.25.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "17cbd8f59586a369c40d4b0d2f3a61cf9e9287b3cf5503cdcd8e7c5faa99265e"
+dependencies = [
+ "atomic_refcell",
+ "cfg-if",
+ "glib",
+ "gstreamer",
+ "gstreamer-base-sys",
+ "libc",
+]
+
+[[package]]
+name = "gstreamer-base-sys"
+version = "0.25.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3b05f77bfd76b5afee6b29c27dae19eaf5018b5cf8d0d17520f3de44c6385c32"
+dependencies = [
+ "glib-sys",
+ "gobject-sys",
+ "gstreamer-sys",
+ "libc",
+ "system-deps 9.0.1",
 ]
 
 [[package]]

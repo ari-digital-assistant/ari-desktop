@@ -1,11 +1,11 @@
 //! The engine in this process: the runtime with its skills, the skill store
-//! and assistants, and the voice pipeline whose session runs typed turns now
-//! and spoken ones from stage 5 of dev.md. The session calls its host on
-//! threads of its own, so [`Host`] hands each call to the main loop as an
-//! [`Event`], and waits for the answer to those that return one.
+//! and assistants, and the voice pipeline whose session runs typed and spoken
+//! turns. The session calls its host on threads of its own, so [`Host`] hands
+//! each call to the main loop as an [`Event`], and waits for the answer to
+//! those that return one.
 
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock, RwLock, Weak};
 
 use ari_engine::ConversationLength;
 use ari_runtime::assistants::AssistantRegistry;
@@ -13,20 +13,25 @@ use ari_runtime::settings::SettingsStore;
 use ari_runtime::skills::{SkillRegistry, SkillRegistryError};
 use ari_runtime::{Providers, Reply, Runtime};
 use ari_skill_loader::{Capability, HostCapabilities, LoadOptions, LocaleProvider};
+use ari_voice::cloud_stt::CloudSttService;
 use ari_voice::pipeline::{LogLevel, VoiceHost, VoicePipeline};
 use ari_voice::session::{
     ActionOutcome, CaptureMode, CardPressed, InterceptTargets, LoggedTurn, Phrase, SessionHost,
     SessionState, TypedFinish,
 };
+use ari_voice::stt_models;
 use ari_voice::wake_log::WakeLog;
+use gettextrs::gettext;
 use gtk4::gio;
 use tokio::runtime::Handle;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 use tokio::sync::oneshot;
 use tracing::{debug, info, warn};
 
+use crate::mic::Mic;
 use crate::providers::{Clock, Locale, SkillLog};
 use crate::skill_settings::SkillSettings;
+use crate::speech_models;
 
 /// What Ari for Linux can run so far. Each stage of dev.md adds what it
 /// builds; a skill needing anything more isn't offered or suggested.
@@ -83,6 +88,21 @@ pub enum Event {
     },
     /// Stop a sounding alert, its stop having been said.
     StopAlert(String),
+    /// Where a voice turn is.
+    State(SessionState),
+    /// Play the "your turn" cue at this volume (0 to 1).
+    Cue(f32),
+}
+
+/// How the user wants speech transcribed, as Preferences sets it.
+#[derive(Debug, Clone, Default)]
+pub struct Speech {
+    /// The cloud service, or None for on this computer.
+    pub cloud: Option<CloudSttService>,
+    /// The cloud service's key, from the keyring.
+    pub key: Option<String>,
+    /// The on-device model picked, when it isn't the recommended one.
+    pub model: Option<String>,
 }
 
 /// The `conversation-length` setting's value as the engine's.
@@ -107,6 +127,7 @@ pub struct Setup<'a> {
 
 pub struct Engine {
     runtime: Arc<Runtime>,
+    host: Arc<Host>,
     pipeline: Arc<VoicePipeline>,
     pub skills: Arc<SkillRegistry>,
     pub assistants: Arc<AssistantRegistry>,
@@ -154,15 +175,32 @@ impl Engine {
         }
 
         let (events, receiver) = unbounded_channel();
-        let host = Arc::new(Host { events });
+        let installed = installed();
+        if let Some(installed) = &installed {
+            // Beside the binary, ONNX Runtime with them: the voice library
+            // opens it by name, which the library's own RUNPATH finds.
+            ari_voice::native::set_library_path(installed.libraries.join("libari_voice_native.so"));
+            ari_voice::sherpa::set_library_path(
+                installed.libraries.join("libsherpa-onnx-c-api.so"),
+            );
+        }
+        let host = Arc::new(Host {
+            events,
+            voice: installed.map(|installed| installed.voice),
+            locale: locale.clone(),
+            speech: RwLock::default(),
+            pipeline: OnceLock::new(),
+        });
         let pipeline = VoicePipeline::new(
             host.clone(),
             Arc::new(WakeLog::new(dir.join("wake-log.txt"))),
         );
-        pipeline.attach_session_host(host);
+        let _ = host.pipeline.set(Arc::downgrade(&pipeline));
+        pipeline.attach_session_host(host.clone());
         pipeline.attach_engine(runtime.clone());
         let engine = Self {
             runtime,
+            host,
             pipeline,
             skills,
             assistants,
@@ -256,10 +294,72 @@ impl Engine {
     pub fn speech_finished(&self, id: u64) {
         self.pipeline.speech_finished(id);
     }
+
+    /// Transcribe as `speech` says from the next listen on.
+    pub fn set_speech(&self, speech: Speech) {
+        self.pipeline.set_cloud_mode(speech.cloud.is_some());
+        *self.host.speech.write().expect("speech lock poisoned") = speech;
+    }
+
+    /// Load the on-device speech model for Ari's language, if it's been
+    /// downloaded, so the first voice turn doesn't wait for it.
+    pub fn warm_speech(&self) -> gio::JoinHandle<bool> {
+        let host = self.host.clone();
+        gio::spawn_blocking(move || host.load_speech_model())
+    }
+
+    /// Start reading the microphone into the voice pipeline.
+    pub fn open_mic(&self) -> Result<Mic, gtk4::glib::Error> {
+        let pipeline = self.pipeline.clone();
+        Mic::open(move |samples| pipeline.push_audio(samples))
+    }
+
+    /// Begin a voice turn, which says where it is through [`Event::State`].
+    /// False when one is already running.
+    pub async fn start_turn(&self) -> bool {
+        let pipeline = self.pipeline.clone();
+        gio::spawn_blocking(move || pipeline.start_turn(false, false))
+            .await
+            .unwrap_or(false)
+    }
+
+    /// End the voice turn: its window was closed.
+    pub fn dismiss(&self) {
+        self.pipeline.dismiss();
+    }
+}
+
+/// Where this copy of Ari keeps what it ships beside its code.
+pub struct Installed {
+    /// The native voice libraries: beside the binary.
+    libraries: PathBuf,
+    /// The wake word and speech detector models: `share/ari/voice` under the
+    /// prefix the binary is installed in, `/usr` or `/app`, or `target/` in
+    /// development, where `just voice` puts them.
+    voice: PathBuf,
+    /// Ari's own sounds, `share/ari/sounds` under the prefix.
+    pub sounds: PathBuf,
+}
+
+pub fn installed() -> Option<Installed> {
+    let exe = std::env::current_exe().ok()?;
+    let libraries = exe.parent()?.to_path_buf();
+    let share = libraries.parent()?.join("share/ari");
+    Some(Installed {
+        libraries,
+        voice: share.join("voice"),
+        sounds: share.join("sounds"),
+    })
 }
 
 struct Host {
     events: UnboundedSender<Event>,
+    /// Where [`Installed::voice`] is, if Ari could tell.
+    voice: Option<PathBuf>,
+    locale: Arc<Locale>,
+    speech: RwLock<Speech>,
+    /// For loading the speech model the session asks for.
+    pipeline: OnceLock<Weak<VoicePipeline>>,
 }
 
 impl Host {
@@ -278,10 +378,12 @@ impl Host {
 }
 
 impl VoiceHost for Host {
-    /// The wake word and speech models arrive with stages 5 and 6.
+    /// A model shipped in [`Installed::voice`].
     fn load_model(&self, name: &str) -> Option<Vec<u8>> {
-        debug!(name, "no models yet");
-        None
+        let path = self.voice.as_ref()?.join(name);
+        std::fs::read(&path)
+            .inspect_err(|error| warn!(%error, path = %path.display(), "a voice model won't read"))
+            .ok()
     }
 
     fn wake_detected(&self) {
@@ -295,19 +397,32 @@ impl VoiceHost for Host {
             LogLevel::Warn => warn!(target: "ari_voice", "{message}"),
         }
     }
+
+    fn locale(&self) -> String {
+        self.locale.current_locale()
+    }
+
+    fn cloud_stt(&self) -> Option<(CloudSttService, Option<String>)> {
+        let speech = self.speech.read().expect("speech lock poisoned");
+        Some((speech.cloud.clone()?, speech.key.clone()))
+    }
 }
 
-/// Only typed turns run until stage 5 of dev.md, and the session never starts
-/// a spoken one, so the calls a spoken turn makes have nothing to show, play
-/// or load yet.
+/// Spoken turns start from Ari's buttons and the shortcut; Ari speaks once it
+/// has a voice, later in stage 5 of dev.md, and listens for its name in
+/// stage 6.
 impl SessionHost for Host {
     fn state(&self, state: SessionState) {
         debug!(?state, "voice session");
+        self.send(Event::State(state));
     }
 
+    /// A quiet wake comes with the wake word, in stage 6.
     fn reveal(&self) {}
 
-    fn play_cue(&self, _volume: f32) {}
+    fn play_cue(&self, volume: f32) {
+        self.send(Event::Cue(volume));
+    }
 
     fn speak(&self, id: u64, text: &str, _flush: bool) {
         debug!(text, "nothing to speak with yet");
@@ -316,14 +431,40 @@ impl SessionHost for Host {
 
     fn stop_speaking(&self) {}
 
-    fn phrase(&self, _phrase: Phrase) -> String {
-        String::new()
+    fn phrase(&self, phrase: Phrase) -> String {
+        match phrase {
+            Phrase::PleaseWait => gettext("One moment…"),
+            Phrase::PleaseRepeat => gettext("Sorry, what was that?"),
+        }
     }
 
     fn capture_mode(&self, _mode: CaptureMode) {}
 
+    /// The downloaded on-device model for Ari's language: the one picked in
+    /// Preferences while it serves the language, else the recommended one.
     fn load_speech_model(&self) -> bool {
-        false
+        let Some(pipeline) = self.pipeline.get().and_then(Weak::upgrade) else {
+            return false;
+        };
+        let picked = self
+            .speech
+            .read()
+            .expect("speech lock poisoned")
+            .model
+            .clone();
+        let model = stt_models::on_device_for(&self.locale.current_locale(), picked.as_deref());
+        if pipeline.stt_model_id().as_deref() == Some(model.id) {
+            return true;
+        }
+        let dir = speech_models::dir(&model);
+        if !speech_models::downloaded(&model, &dir) {
+            info!(model = model.id, "the speech model isn't downloaded");
+            return false;
+        }
+        pipeline
+            .load_stt(&model.spec(dir))
+            .inspect_err(|error| warn!(%error, model = model.id, "the speech model won't load"))
+            .is_ok()
     }
 
     fn intercept_targets(&self) -> InterceptTargets {

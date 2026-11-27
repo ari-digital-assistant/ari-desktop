@@ -1,5 +1,6 @@
 //! A sounding alert: its sound, played over until it's stopped or its caps
-//! run out. The notification that goes with it is posted by Ari.
+//! run out. The notification that goes with it is posted by Ari. Also the
+//! voice turn's "your turn" cue, played once.
 
 use std::cell::Cell;
 use std::path::{Path, PathBuf};
@@ -18,7 +19,8 @@ const BETWEEN_RINGS: Duration = Duration::from_millis(1050);
 
 pub struct Sounding {
     pub spec: AlertSpec,
-    player: Option<Player>,
+    /// Held for its sound, which stops as it's dropped.
+    _player: Option<Player>,
     /// Ends the alert at `auto_stop_ms`, until it has.
     auto_stop: Rc<Cell<Option<glib::SourceId>>>,
 }
@@ -29,7 +31,7 @@ impl Sounding {
     pub fn start(spec: AlertSpec, sound: Option<&Path>, over: impl Fn() + 'static) -> Self {
         let over = Rc::new(over);
         let auto_stop = Rc::new(Cell::new(None));
-        let player = sound.and_then(|sound| play(sound, spec.max_cycles.max(1), over.clone()));
+        let player = sound.and_then(|sound| play(sound, spec.max_cycles.max(1), 1.0, over.clone()));
         let ms = u64::try_from(spec.auto_stop_ms).unwrap_or(0);
         if ms > 0 {
             let fired = auto_stop.clone();
@@ -42,31 +44,42 @@ impl Sounding {
         }
         Self {
             spec,
-            player,
+            _player: player,
             auto_stop,
         }
     }
 
+    /// Stop it. Its player stops its sound as it goes.
     pub fn stop(self) {
-        if let Some(player) = &self.player
-            && let Err(error) = player.playbin.set_state(gst::State::Null)
-        {
-            warn!(%error, "the alert's sound wouldn't stop");
-        }
         if let Some(id) = self.auto_stop.take() {
             id.remove();
         }
     }
 }
 
+/// Play `sound` once at `volume` (0 to 1). Keep what comes back until it
+/// has played: dropping it stops the sound.
+pub fn cue(sound: &Path, volume: f32) -> Option<Player> {
+    play(sound, 1, f64::from(volume.clamp(0.0, 1.0)), Rc::new(|| {}))
+}
+
 /// A sound playing, and the watch on its messages, which ends with it.
-struct Player {
+pub struct Player {
     playbin: gst::Element,
     _watch: gst::bus::BusWatchGuard,
 }
 
-/// Play `sound` `cycles` times, then call `over`. None when it can't be.
-fn play(sound: &Path, cycles: i64, over: Rc<dyn Fn()>) -> Option<Player> {
+impl Drop for Player {
+    fn drop(&mut self) {
+        if let Err(error) = self.playbin.set_state(gst::State::Null) {
+            warn!(%error, "a sound wouldn't stop");
+        }
+    }
+}
+
+/// Play `sound` `cycles` times at `volume` (1 is as recorded), then call
+/// `over`. None when it can't be.
+fn play(sound: &Path, cycles: i64, volume: f64, over: Rc<dyn Fn()>) -> Option<Player> {
     let started = || -> Result<Player, glib::BoolError> {
         gst::init().map_err(|error| glib::bool_error!("{error}"))?;
         let uri =
@@ -76,6 +89,7 @@ fn play(sound: &Path, cycles: i64, over: Rc<dyn Fn()>) -> Option<Player> {
             .build()?;
         // Sound only: a video track never opens a window.
         playbin.set_property_from_str("flags", "audio");
+        playbin.set_property("volume", volume);
         let bus = playbin
             .bus()
             .ok_or_else(|| glib::bool_error!("playbin has no bus"))?;

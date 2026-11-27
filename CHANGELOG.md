@@ -46,3 +46,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   some.
 - When no installed skill can answer but one in the store could, Ari offers it with a
   button that opens it.
+- Talk to Ari: with the message field empty, the button beside it listens. Ari stops
+  listening when you stop speaking, and the button stops it sooner.
+- Preferences, Speech: recognise speech on this computer, through OpenAI, or through a
+  server of your own. Speech models for Ari's language download from there, and a download
+  that stops picks up where it left off.

@@ -33,11 +33,11 @@ clap = { version = "4", features = ["derive"] }
 #   ari-voice = { path = "../ari-engine/crates/ari-voice" }
 # Without `llm`: the on-device assistant comes with stage 9 of dev.md.
 # What a skill's envelope asks for, and what pressing a card's button does.
-ari-core = { git = "https://github.com/ari-digital-assistant/ari-engine", rev = "6f6401dfc37c8b13447ee84dfc054bfb49659a51" }
-ari-engine = { git = "https://github.com/ari-digital-assistant/ari-engine", rev = "6f6401dfc37c8b13447ee84dfc054bfb49659a51", default-features = false }
-ari-runtime = { git = "https://github.com/ari-digital-assistant/ari-engine", rev = "6f6401dfc37c8b13447ee84dfc054bfb49659a51", default-features = false }
-ari-skill-loader = { git = "https://github.com/ari-digital-assistant/ari-engine", rev = "6f6401dfc37c8b13447ee84dfc054bfb49659a51" }
-ari-voice = { git = "https://github.com/ari-digital-assistant/ari-engine", rev = "6f6401dfc37c8b13447ee84dfc054bfb49659a51" }
+ari-core = { git = "https://github.com/ari-digital-assistant/ari-engine", rev = "4e1b5997f41ea534ca9dcf8cb32e80ba71407f64" }
+ari-engine = { git = "https://github.com/ari-digital-assistant/ari-engine", rev = "4e1b5997f41ea534ca9dcf8cb32e80ba71407f64", default-features = false }
+ari-runtime = { git = "https://github.com/ari-digital-assistant/ari-engine", rev = "4e1b5997f41ea534ca9dcf8cb32e80ba71407f64", default-features = false }
+ari-skill-loader = { git = "https://github.com/ari-digital-assistant/ari-engine", rev = "4e1b5997f41ea534ca9dcf8cb32e80ba71407f64" }
+ari-voice = { git = "https://github.com/ari-digital-assistant/ari-engine", rev = "4e1b5997f41ea534ca9dcf8cb32e80ba71407f64" }
 # The conversation log and remembered facts on disk.
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
@@ -52,6 +52,12 @@ pulldown-cmark = { version = "0.13.6", default-features = false }
 # through it from a sound with no window broke the window's drawing; this
 # plays audio only.
 gstreamer = "0.25.4"
+# The microphone, through GStreamer's appsink, from PipeWire or PulseAudio.
+gstreamer-app = "0.25.2"
+# Speech model downloads, with the client and checksum the engine already
+# builds with.
+reqwest = { version = "0.13.5", default-features = false, features = ["blocking", "rustls"] }
+sha2 = "0.10.9"
 
 [build-dependencies]
 # Builds the icons Ari ships into the binary.

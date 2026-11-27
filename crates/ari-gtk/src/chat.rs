@@ -32,24 +32,40 @@ pub struct ChatPage {
     /// Where each card shows, drawn again when it changes.
     card_slots: RefCell<HashMap<String, Vec<glib::WeakRef<gtk4::Box>>>>,
     history: RefCell<History>,
+    /// The row under the messages saying what Ari is doing.
     thinking: gtk4::Box,
+    status: gtk4::Label,
+    /// What Ari has heard so far, while it listens.
+    listening: RefCell<Option<String>>,
+    /// A typed turn is waiting on the engine.
+    waiting: Cell<bool>,
     composer: gtk4::Box,
+    entry: gtk4::Entry,
+    button: gtk4::Button,
+    /// A voice turn is under way.
+    talking: Rc<Cell<bool>>,
     /// Keep the newest message in view: true until the user scrolls up.
     follow: Rc<Cell<bool>>,
 }
 
 impl ChatPage {
-    /// `send` gets what the user typed, trimmed and never empty.
-    pub fn new(send: impl Fn(String) + 'static, attachments: Attachments) -> Rc<Self> {
+    /// `send` gets what the user typed, trimmed and never empty; `talk`
+    /// starts a voice turn, or stops the one under way.
+    pub fn new(
+        send: impl Fn(String) + 'static,
+        talk: impl Fn() + 'static,
+        attachments: Attachments,
+    ) -> Rc<Self> {
         let messages = gtk4::Box::new(gtk4::Orientation::Vertical, 20);
         let thinking = gtk4::Box::builder().spacing(12).visible(false).build();
         thinking.append(&avatar());
-        thinking.append(
-            &gtk4::Label::builder()
-                .label(gettext("Thinking…"))
-                .css_classes(["dim-label"])
-                .build(),
-        );
+        let status = gtk4::Label::builder()
+            .label(gettext("Thinking…"))
+            .wrap(true)
+            .xalign(0.0)
+            .css_classes(["dim-label"])
+            .build();
+        thinking.append(&status);
         let column = gtk4::Box::builder()
             .orientation(gtk4::Orientation::Vertical)
             .spacing(20)
@@ -72,23 +88,40 @@ impl ChatPage {
             .build();
 
         let follow = Rc::new(Cell::new(true));
+        // The height the view last followed to. A move away from the bottom
+        // with the height unchanged is the user scrolling up; one that comes
+        // with a new height is the conversation growing, which mustn't stop
+        // the following.
+        let followed = Rc::new(Cell::new(0.0));
         let adjustment = scroller.vadjustment();
         adjustment.connect_value_changed(glib::clone!(
             #[strong]
             follow,
-            move |a| follow.set(a.value() >= a.upper() - a.page_size() - 1.0)
+            #[strong]
+            followed,
+            move |a| {
+                if a.value() >= a.upper() - a.page_size() - 1.0 {
+                    follow.set(true);
+                } else if a.upper() == followed.get() {
+                    follow.set(false);
+                }
+            }
         ));
-        adjustment.connect_upper_notify(glib::clone!(
+        let stick = glib::clone!(
             #[strong]
             follow,
-            move |a| {
+            move |a: &gtk4::Adjustment| {
+                followed.set(a.upper());
                 if follow.get() {
                     a.set_value(a.upper() - a.page_size());
                 }
             }
-        ));
+        );
+        adjustment.connect_upper_notify(stick.clone());
+        adjustment.connect_page_size_notify(stick);
 
-        let (composer, entry, button) = composer();
+        let talking = Rc::new(Cell::new(false));
+        let (composer, entry, button) = composer(talking.clone());
         let root = gtk4::Box::new(gtk4::Orientation::Vertical, 0);
         root.append(&scroller);
         root.append(
@@ -110,7 +143,13 @@ impl ChatPage {
             card_slots: RefCell::default(),
             history: RefCell::default(),
             thinking,
+            status,
+            listening: RefCell::default(),
+            waiting: Cell::new(false),
             composer,
+            entry: entry.clone(),
+            button: button.clone(),
+            talking,
             follow,
         });
         let send = Rc::new(move |entry: &gtk4::Entry| {
@@ -128,7 +167,13 @@ impl ChatPage {
         button.connect_clicked(glib::clone!(
             #[weak]
             entry,
-            move |_| send(&entry)
+            move |_| {
+                if entry.text().trim().is_empty() {
+                    talk();
+                } else {
+                    send(&entry);
+                }
+            }
         ));
 
         // Up and Down step through what was sent before, as in a shell. They
@@ -263,11 +308,37 @@ impl ChatPage {
     }
 
     pub fn set_thinking(&self, thinking: bool) {
-        self.thinking.set_visible(thinking);
+        self.waiting.set(thinking);
         if thinking {
             self.composer.add_css_class("thinking");
         } else {
             self.composer.remove_css_class("thinking");
+        }
+        self.show_status();
+    }
+
+    /// Show what Ari has heard so far, or None once it has stopped listening.
+    pub fn set_listening(&self, heard: Option<String>) {
+        *self.listening.borrow_mut() = heard;
+        self.show_status();
+    }
+
+    /// A voice turn has started or ended: the mic button stops it meanwhile.
+    pub fn set_talking(&self, talking: bool) {
+        self.talking.set(talking);
+        show_button(&self.button, !self.entry.text().trim().is_empty(), talking);
+    }
+
+    fn show_status(&self) {
+        match &*self.listening.borrow() {
+            Some(heard) => {
+                self.status.set_label(heard);
+                self.thinking.set_visible(true);
+            }
+            None => {
+                self.status.set_label(&gettext("Thinking…"));
+                self.thinking.set_visible(self.waiting.get());
+            }
         }
     }
 }
@@ -347,9 +418,9 @@ fn avatar() -> gtk4::Image {
 }
 
 /// The text field in its ring, and the button beside it: the microphone
-/// while there's nothing typed, Send once there is. The microphone does
-/// nothing until stage 5 of dev.md, so it's greyed out until then.
-fn composer() -> (gtk4::Box, gtk4::Entry, gtk4::Button) {
+/// while there's nothing typed, Send once there is, and Stop while Ari
+/// listens.
+fn composer(talking: Rc<Cell<bool>>) -> (gtk4::Box, gtk4::Entry, gtk4::Button) {
     let entry = gtk4::Entry::builder()
         .hexpand(true)
         .has_frame(false)
@@ -360,11 +431,11 @@ fn composer() -> (gtk4::Box, gtk4::Entry, gtk4::Button) {
         .valign(gtk4::Align::Center)
         .css_classes(["circular", "suggested-action"])
         .build();
-    show_button(&button, false);
+    show_button(&button, false, false);
     entry.connect_changed(glib::clone!(
         #[weak]
         button,
-        move |entry| show_button(&button, !entry.text().trim().is_empty())
+        move |entry| show_button(&button, !entry.text().trim().is_empty(), talking.get())
     ));
 
     let composer = gtk4::Box::builder()
@@ -376,15 +447,16 @@ fn composer() -> (gtk4::Box, gtk4::Entry, gtk4::Button) {
     (composer, entry, button)
 }
 
-fn show_button(button: &gtk4::Button, typed: bool) {
-    if typed {
-        button.set_icon_name("go-up-symbolic");
-        button.set_tooltip_text(Some(&gettext("Send")));
+fn show_button(button: &gtk4::Button, typed: bool, talking: bool) {
+    let (icon, tooltip) = if typed {
+        ("go-up-symbolic", gettext("Send"))
+    } else if talking {
+        ("media-playback-stop-symbolic", gettext("Stop Listening"))
     } else {
-        button.set_icon_name("audio-input-microphone-symbolic");
-        button.set_tooltip_text(Some(&gettext("Talk to Ari")));
-    }
-    button.set_sensitive(typed);
+        ("audio-input-microphone-symbolic", gettext("Talk to Ari"))
+    };
+    button.set_icon_name(icon);
+    button.set_tooltip_text(Some(&tooltip));
 }
 
 #[cfg(test)]

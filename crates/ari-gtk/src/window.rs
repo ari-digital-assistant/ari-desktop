@@ -91,6 +91,11 @@ impl Window {
                 ari,
                 move |text| ari.submit(text)
             ),
+            glib::clone!(
+                #[weak]
+                ari,
+                move || ari.talk()
+            ),
             attachments,
         );
         let timers = TimersPage::new(ari);

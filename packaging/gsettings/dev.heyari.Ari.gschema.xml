@@ -48,6 +48,31 @@
       <summary>Maps</summary>
       <description>Where directions Ari opens go.</description>
     </key>
+    <key name="speech-recognition" type="s">
+      <choices>
+        <choice value="on-device"/>
+        <choice value="openai"/>
+        <choice value="self-hosted"/>
+      </choices>
+      <default>'on-device'</default>
+      <summary>Speech recognition</summary>
+      <description>How Ari turns speech into words: a model on this computer, OpenAI, or a server of your own.</description>
+    </key>
+    <key name="speech-model" type="s">
+      <default>''</default>
+      <summary>Speech model</summary>
+      <description>The id of the on-device speech model picked. Empty, or one that can't transcribe Ari's language, uses the recommended one.</description>
+    </key>
+    <key name="speech-server" type="s">
+      <default>'http://homeassistant.local:10300/v1'</default>
+      <summary>Speech server</summary>
+      <description>The address of your own OpenAI-compatible transcription server.</description>
+    </key>
+    <key name="speech-server-model" type="s">
+      <default>'whisper-1'</default>
+      <summary>Speech server model</summary>
+      <description>The model your own transcription server is asked for.</description>
+    </key>
     <key name="assistant" type="s">
       <default>''</default>
       <summary>Assistant</summary>
