@@ -21,7 +21,7 @@ jobs:
         run: |
           dnf install -y --setopt=install_weak_deps=False \
             just cargo clippy rustfmt gcc pkgconf-pkg-config \
-            gtk4-devel libadwaita-devel gstreamer1-devel gettext desktop-file-utils appstream
+            gtk4-devel libadwaita-devel gstreamer1-devel gstreamer1-plugins-base-devel gettext desktop-file-utils appstream
 
       - name: Quality gate (fmt, clippy -D warnings, tests, packaging, translations)
         run: just check
